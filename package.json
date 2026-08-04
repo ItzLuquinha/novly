@@ -1,0 +1,24 @@
+{
+  "name": "novly",
+  "version": "1.0.0",
+  "description": "Novly - plataforma privada de leitura e escrita",
+  "main": "server/index.js",
+  "scripts": {
+    "seed": "node server/seed.js",
+    "server": "node server/index.js",
+    "client": "npm --prefix client run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dictionary-pt": "^4.0.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "nspell": "^2.1.5"
+  }
+}

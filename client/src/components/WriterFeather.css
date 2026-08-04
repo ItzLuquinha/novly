@@ -1,0 +1,29 @@
+.feather-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.feather-svg {
+  width: 64px;
+  height: 64px;
+  transition: filter var(--duration-slow) var(--ease-soft);
+}
+
+.feather-caption {
+  font-size: 0.68rem;
+  color: var(--color-parchment-dim);
+  text-align: center;
+  font-family: var(--font-reading);
+  font-style: italic;
+}
+
+.feather-shine {
+  animation: feather-shine 2.6s ease-in-out infinite;
+}
+
+@keyframes feather-shine {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}

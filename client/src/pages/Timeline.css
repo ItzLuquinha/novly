@@ -1,0 +1,156 @@
+.timeline-page {
+  padding: var(--space-16) var(--space-12);
+  max-width: 800px;
+}
+
+.timeline-back {
+  font-size: 0.8rem;
+  color: var(--color-parchment-dim);
+  margin-bottom: var(--space-8);
+  display: inline-block;
+}
+
+.timeline-back:hover {
+  color: var(--color-parchment);
+}
+
+.timeline-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  margin-bottom: var(--space-10);
+}
+
+.timeline-track {
+  position: relative;
+  padding-left: var(--space-8);
+}
+
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--color-line-strong);
+}
+
+.timeline-event {
+  position: relative;
+  padding-bottom: var(--space-8);
+}
+
+.timeline-event::before {
+  content: '';
+  position: absolute;
+  left: -29px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-gold);
+}
+
+.timeline-event-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.timeline-event-date {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-gold-dim);
+  margin-bottom: var(--space-1);
+}
+
+.timeline-event-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin-bottom: var(--space-2);
+}
+
+.timeline-event-description {
+  font-family: var(--font-reading);
+  font-size: 0.88rem;
+  color: var(--color-parchment-dim);
+  line-height: 1.6;
+  margin-bottom: var(--space-2);
+}
+
+.timeline-event-chapter {
+  font-size: 0.72rem;
+  color: var(--color-parchment-dim);
+}
+
+.timeline-event-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.timeline-event-actions button {
+  font-size: 0.7rem;
+  color: var(--color-parchment-dim);
+  padding: var(--space-1) var(--space-2);
+  border-radius: 3px;
+}
+
+.timeline-event-actions button:hover {
+  color: var(--color-parchment);
+  background: rgba(232, 220, 200, 0.06);
+}
+
+.timeline-event-actions .delete:hover {
+  color: var(--color-ember);
+}
+
+.timeline-add-form {
+  margin-top: var(--space-10);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.timeline-add-form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.timeline-add-form input,
+.timeline-add-form select,
+.timeline-add-form textarea {
+  border: 1px solid var(--color-line-strong);
+  border-radius: 4px;
+  padding: var(--space-3);
+  font-size: 0.85rem;
+}
+
+.timeline-add-form textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.timeline-add-form button {
+  align-self: flex-start;
+  font-size: 0.78rem;
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-gold-dim);
+  border-radius: 4px;
+  color: var(--color-parchment);
+}
+
+.timeline-add-form button:hover {
+  background: rgba(201, 168, 106, 0.06);
+}
+
+.timeline-empty {
+  font-family: var(--font-reading);
+  font-style: italic;
+  color: var(--color-parchment-dim);
+}

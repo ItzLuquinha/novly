@@ -1,0 +1,89 @@
+.spellcheck-overlay-wrap {
+  position: relative;
+}
+
+.spellcheck-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
+  color: transparent;
+  line-height: 1.8;
+  padding: 0;
+  margin: 0;
+}
+
+.spellcheck-mark {
+  pointer-events: auto;
+  cursor: pointer;
+  border-bottom: 2px dotted var(--color-ember);
+  text-decoration: none;
+}
+
+.spellcheck-mark.gramatica {
+  border-bottom-color: var(--color-gold);
+  border-bottom-style: wavy;
+}
+
+.spellcheck-popover {
+  position: fixed;
+  z-index: 60;
+  background: var(--color-wood-dark);
+  border: 1px solid var(--color-line-strong);
+  border-radius: 8px;
+  padding: var(--space-4);
+  width: 280px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.spellcheck-popover-message {
+  font-size: 0.8rem;
+  color: var(--color-parchment-dim);
+  margin-bottom: var(--space-3);
+  line-height: 1.4;
+}
+
+.spellcheck-popover-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.spellcheck-popover-suggestions button {
+  font-size: 0.78rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-gold-dim);
+  border-radius: 4px;
+  color: var(--color-gold);
+}
+
+.spellcheck-popover-suggestions button:hover {
+  background: rgba(201, 168, 106, 0.08);
+}
+
+.spellcheck-popover-ignore {
+  margin-top: var(--space-3);
+  font-size: 0.72rem;
+  color: var(--color-parchment-dim);
+}
+
+.spellcheck-popover-ignore:hover {
+  color: var(--color-parchment);
+}
+
+.spellcheck-status {
+  font-size: 0.7rem;
+  color: var(--color-parchment-dim);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.spellcheck-status.checking {
+  color: var(--color-gold-dim);
+}

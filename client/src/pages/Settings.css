@@ -1,0 +1,194 @@
+.settings-page {
+  padding: var(--space-16) var(--space-12);
+  max-width: 700px;
+}
+
+.settings-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  margin-bottom: var(--space-12);
+}
+
+.settings-section {
+  margin-bottom: var(--space-12);
+  padding-bottom: var(--space-10);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.settings-section-heading {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  margin-bottom: var(--space-2);
+}
+
+.settings-section-subtitle {
+  font-size: 0.82rem;
+  color: var(--color-parchment-dim);
+  margin-bottom: var(--space-6);
+}
+
+.settings-field {
+  margin-bottom: var(--space-4);
+}
+
+.settings-field label {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-gold-dim);
+  margin-bottom: var(--space-2);
+}
+
+.settings-field input {
+  width: 100%;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 4px;
+  padding: var(--space-3);
+  font-size: 0.9rem;
+}
+
+.settings-submit-btn {
+  padding: var(--space-3) var(--space-6);
+  border: 1px solid var(--color-gold-dim);
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: var(--color-parchment);
+  transition: all var(--duration-base) var(--ease-soft);
+}
+
+.settings-submit-btn:hover:not(:disabled) {
+  background: rgba(201, 168, 106, 0.08);
+  border-color: var(--color-gold);
+}
+
+.settings-submit-btn:disabled {
+  opacity: 0.5;
+}
+
+.settings-message {
+  font-size: 0.8rem;
+  margin-top: var(--space-3);
+}
+
+.settings-message.success {
+  color: var(--color-gold);
+}
+
+.settings-message.error {
+  color: var(--color-ember);
+}
+
+.settings-bg-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.settings-bg-tab {
+  font-size: 0.78rem;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-line-strong);
+  border-radius: 20px;
+  color: var(--color-parchment-dim);
+  transition: all var(--duration-base) var(--ease-soft);
+}
+
+.settings-bg-tab.active {
+  border-color: var(--color-gold-dim);
+  color: var(--color-gold);
+}
+
+.settings-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.settings-preset-swatch {
+  aspect-ratio: 16 / 10;
+  border-radius: 6px;
+  border: 1px solid var(--color-line-strong);
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--space-2);
+  transition: border-color var(--duration-base) var(--ease-soft);
+}
+
+.settings-preset-swatch:hover {
+  border-color: var(--color-gold-dim);
+}
+
+.settings-preset-swatch.active {
+  border-color: var(--color-gold);
+}
+
+.settings-preset-swatch-label {
+  font-size: 0.65rem;
+  color: var(--color-parchment);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
+.settings-upload-zone {
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 8px;
+  padding: var(--space-8);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--duration-base) var(--ease-soft);
+}
+
+.settings-upload-zone:hover {
+  border-color: var(--color-gold-dim);
+}
+
+.settings-upload-zone input[type="file"] {
+  display: none;
+}
+
+.settings-upload-hint {
+  font-size: 0.78rem;
+  color: var(--color-parchment-dim);
+}
+
+.settings-size-hint {
+  font-size: 0.72rem;
+  color: var(--color-parchment-dim);
+  margin-top: var(--space-3);
+  line-height: 1.5;
+}
+
+.settings-url-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.settings-url-row input {
+  flex: 1;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 4px;
+  padding: var(--space-3);
+  font-size: 0.85rem;
+}
+
+.settings-bg-preview {
+  margin-top: var(--space-6);
+  height: 140px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line-strong);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--space-4);
+}
+
+.settings-bg-preview-label {
+  font-size: 0.7rem;
+  color: var(--color-parchment-dim);
+  background: rgba(13, 10, 8, 0.6);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 10px;
+}

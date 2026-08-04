@@ -1,0 +1,69 @@
+.wcal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.wcal-month-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--color-parchment);
+}
+
+.wcal-nav-btn {
+  font-size: 0.75rem;
+  color: var(--color-parchment-dim);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 4px;
+}
+
+.wcal-nav-btn:hover {
+  background: rgba(232, 220, 200, 0.06);
+  color: var(--color-parchment);
+}
+
+.wcal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.wcal-weekday {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-parchment-dim);
+  text-align: center;
+  padding-bottom: var(--space-2);
+}
+
+.wcal-day {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--color-parchment-dim);
+  background: rgba(232, 220, 200, 0.03);
+  position: relative;
+}
+
+.wcal-day.empty {
+  background: transparent;
+}
+
+.wcal-day.has-words {
+  color: var(--color-wood-dark);
+  font-weight: 500;
+}
+
+.wcal-day.today {
+  box-shadow: inset 0 0 0 1px var(--color-gold);
+}
+
+.wcal-day[data-level="1"] { background: rgba(201, 168, 106, 0.28); }
+.wcal-day[data-level="2"] { background: rgba(201, 168, 106, 0.5); }
+.wcal-day[data-level="3"] { background: rgba(201, 168, 106, 0.72); }
+.wcal-day[data-level="4"] { background: var(--color-gold); }

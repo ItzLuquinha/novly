@@ -1,0 +1,111 @@
+:root {
+  --color-void: #0d0a08;
+  --color-wood-dark: #1a1410;
+  --color-wood: #2b2118;
+  --color-wood-light: #3a2c1f;
+  --color-leather: #4a3728;
+  --color-parchment: #e8dcc8;
+  --color-parchment-dim: #c9baa0;
+  --color-gold: #c9a86a;
+  --color-gold-dim: #8f7648;
+  --color-ember: #b5673a;
+  --color-line: rgba(232, 220, 200, 0.1);
+  --color-line-strong: rgba(232, 220, 200, 0.18);
+
+  --font-display: 'Fraunces', 'Iowan Old Style', serif;
+  --font-reading: 'Source Serif 4', Georgia, serif;
+  --font-ui: 'Inter', -apple-system, sans-serif;
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 160ms;
+  --duration-base: 220ms;
+  --duration-slow: 400ms;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-void);
+  color: var(--color-parchment);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, textarea {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+::selection {
+  background: rgba(201, 168, 106, 0.28);
+  color: var(--color-parchment);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-wood-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-leather);
+  border-radius: 6px;
+  border: 2px solid var(--color-wood-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-dim);
+}
