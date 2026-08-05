@@ -66,3 +66,14 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Novly server rodando na porta ${PORT}`);
 });
+
+app.get('/api/debug/users', (req, res) => {
+  const db = require('./db');
+
+  const users = db.prepare(`
+    SELECT id, email, role
+    FROM users
+  `).all();
+
+  res.json(users);
+});
