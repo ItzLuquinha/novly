@@ -1,4 +1,7 @@
-const BASE = '/api';
+const BASE =
+  import.meta.env.PROD
+    ? 'https://novly-3cox.onrender.com/api'
+    : 'http://localhost:4001/api';
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -218,7 +221,7 @@ export const api = {
   uploadBackgroundImage: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    const res = await fetch('/api/uploads/background-image', {
+    const res = await fetch(`${BASE}/uploads/background-image`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
@@ -231,7 +234,7 @@ export const api = {
   uploadCharacterPhoto: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    const res = await fetch('/api/uploads/character-photo', {
+    const res = await fetch(`${BASE}/uploads/character-photo`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
