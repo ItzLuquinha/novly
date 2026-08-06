@@ -16,10 +16,18 @@ router.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Email ou senha incorretos.' });
   }
 
-  const valid = bcrypt.compareSync(password, user.password_hash);
-  if (!valid) {
-    return res.status(401).json({ error: 'Email ou senha incorretos.' });
-  }
+  console.log("========== LOGIN ==========");
+console.log("Email received:", email);
+console.log("Password received:", password);
+
+const valid = bcrypt.compareSync(password, user.password_hash);
+
+console.log("Stored hash:", user.password_hash);
+console.log("Password valid:", valid);
+
+if (!valid) {
+  return res.status(401).json({ error: 'Email ou senha incorretos.' });
+}
 
   db.prepare('UPDATE users SET last_active_at = datetime(\'now\') WHERE id = ?').run(user.id);
   db.prepare(`
@@ -29,10 +37,11 @@ router.post('/login', (req, res) => {
 
   const token = signToken(user);
   res.cookie(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-  });
+  httpOnly: true,
+  secure: true,
+  sameSite: 'none',
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+});
 
   const { password_hash, ...safeUser } = user;
   res.json({ user: safeUser });
