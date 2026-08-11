@@ -7,6 +7,8 @@ import { useEffect, useState, useRef } from 'react';
 import HiddenNote from './HiddenNote.jsx';
 import AmbientSounds from './AmbientSounds.jsx';
 import GuidedTour from './GuidedTour.jsx';
+import PromoPopup from './PromoPopup.jsx';
+import Livrinho from './Livrinho.jsx';
 import './Shell.css';
 
 export default function Shell({ children }) {
@@ -99,6 +101,8 @@ export default function Shell({ children }) {
       <HiddenNote />
       <AmbientSounds />
       <GuidedTour replayTriggerRef={tourReplayRef} />
+      <PromoPopup />
+      {user?.role === 'escritor' && <Livrinho />}
     </div>
   );
 }

@@ -107,6 +107,20 @@ export const WRITER_TOUR = [
     text: 'Deixe uma mensagem escondida para ela encontrar em uma data especial, como um aniversario.',
     placement: 'right',
   },
+  {
+    route: '/configuracoes',
+    target: '[data-tour="livrinho-api"]',
+    title: 'Chave do Livrinho',
+    text: 'Cole aqui sua API key do Google Gemini. O Livrinho usa essa chave so no seu navegador para te ajudar a escrever.',
+    placement: 'top',
+    optional: true,
+  },
+  {
+    target: '[data-tour="livrinho"]',
+    title: 'Conheca o Livrinho',
+    text: 'Este livrinho flutuante e sua IA de escrita. Clique nele para pedir continuidade, dialogo, ideias de cena ou destravar o bloqueio. Se voce ficar parado no editor, ele aparece sozinho oferecendo ajuda.',
+    placement: 'left',
+  },
 ];
 
 export const WRITER_EDITOR_TOUR = [
@@ -115,6 +129,12 @@ export const WRITER_EDITOR_TOUR = [
     title: 'Escreva aqui',
     text: 'Tudo e salvo automaticamente enquanto voce digita. Sem botao de salvar, sem se preocupar.',
     placement: 'top',
+  },
+  {
+    target: '[data-tour="livrinho"]',
+    title: 'Livrinho no editor',
+    text: 'Enquanto escreve, o Livrinho le o contexto do capitulo e pode continuar o texto, sugerir dialogo ou cutucar se o teclado ficar quieto por alguns minutos.',
+    placement: 'left',
   },
   {
     target: '[data-tour="editor-lore"]',

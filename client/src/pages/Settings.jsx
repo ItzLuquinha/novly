@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { api } from '../lib/api';
 import { BACKGROUND_PRESETS } from '../lib/backgroundPresets.js';
+import { getGeminiKey, setGeminiKey } from '../lib/gemini';
 import './Settings.css';
 
 export default function Settings() {
@@ -21,6 +22,15 @@ export default function Settings() {
   const [urlValue, setUrlValue] = useState('');
   const [bgMsg, setBgMsg] = useState(null);
   const [bgBusy, setBgBusy] = useState(false);
+
+  const [geminiKey, setGeminiKeyState] = useState(() => getGeminiKey());
+  const [geminiMsg, setGeminiMsg] = useState(null);
+
+  function handleGeminiSave(e) {
+    e.preventDefault();
+    setGeminiKey(geminiKey);
+    setGeminiMsg({ type: 'success', text: geminiKey.trim() ? 'Chave do Livrinho salva neste navegador.' : 'Chave removida.' });
+  }
 
   async function handleEmailSubmit(e) {
     e.preventDefault();
@@ -264,6 +274,33 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      {user?.role === 'escritor' && (
+        <div className="settings-section" data-tour="livrinho-api">
+          <h2 className="settings-section-heading">Livrinho (IA)</h2>
+          <p className="settings-section-subtitle">
+            Cole sua API key do Google Gemini. Ela fica so neste navegador (localStorage)
+            e e usada pelo Livrinho para sugerir texto, dialogo e ideias de cena.
+          </p>
+          <form onSubmit={handleGeminiSave}>
+            <div className="settings-field">
+              <label htmlFor="gemini-key">API key Gemini</label>
+              <input
+                id="gemini-key"
+                type="password"
+                autoComplete="off"
+                value={geminiKey}
+                onChange={(e) => setGeminiKeyState(e.target.value)}
+                placeholder="AIza..."
+              />
+            </div>
+            <button className="settings-submit-btn" type="submit">
+              Salvar chave
+            </button>
+            {geminiMsg && <p className={`settings-message ${geminiMsg.type}`}>{geminiMsg.text}</p>}
+          </form>
+        </div>
+      )}
     </div>
   );
 }
