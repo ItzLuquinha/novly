@@ -22,6 +22,8 @@ import BookPlaces from './pages/BookPlaces.jsx';
 import BookObjects from './pages/BookObjects.jsx';
 import BookTimeline from './pages/BookTimeline.jsx';
 import Settings from './pages/Settings.jsx';
+import Terms from './pages/Terms.jsx';
+import Privacy from './pages/Privacy.jsx';
 import RequireAuth from './components/RequireAuth.jsx';
 import RequireWriter from './components/RequireWriter.jsx';
 import Shell from './components/Shell.jsx';
@@ -58,6 +60,8 @@ export default function App() {
                 <Route path="/escritor/objetos/:id" element={<RequireWriter><WriterObjectDetail /></RequireWriter>} />
                 <Route path="/escritor/bilhetes" element={<RequireWriter><WriterNotes /></RequireWriter>} />
                 <Route path="/configuracoes" element={<Settings />} />
+                <Route path="/termos" element={<Terms />} />
+                <Route path="/privacidade" element={<Privacy />} />
               </Routes>
             </Shell>
           </RequireAuth>

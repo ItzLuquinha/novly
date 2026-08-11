@@ -151,3 +151,13 @@
     flex-wrap: wrap;
   }
 }
+
+.shell-legal {
+  margin-top: var(--space-3);
+  font-size: 0.7rem;
+  color: var(--color-parchment-dim);
+}
+
+.shell-legal a:hover {
+  color: var(--color-gold);
+}

@@ -1,0 +1,195 @@
+.external-books {
+  margin-top: var(--space-6);
+}
+
+.external-books-header {
+  margin-bottom: var(--space-6);
+}
+
+.external-books-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+}
+
+.external-books-lead {
+  color: var(--color-parchment-dim);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  max-width: 540px;
+}
+
+.external-search {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  max-width: 560px;
+}
+
+.external-search-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-card);
+  font-size: 0.9rem;
+}
+
+.external-search-input:focus {
+  border-color: var(--color-gold-dim);
+}
+
+.external-search-btn {
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-gold);
+  color: #0c0b12;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.external-search-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.external-search-btn:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.external-placeholder-banner {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-line-strong);
+  background: var(--color-accent-soft);
+  color: var(--color-parchment-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: var(--space-6);
+}
+
+.external-placeholder-banner code {
+  font-size: 0.8rem;
+  color: var(--color-gold);
+}
+
+.external-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin-bottom: var(--space-4);
+}
+
+.external-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-5, 1.25rem);
+}
+
+.external-card {
+  display: flex;
+  gap: var(--space-4);
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  transition: border-color var(--duration-base) var(--ease-soft),
+    background var(--duration-base) var(--ease-soft);
+}
+
+.external-card:hover {
+  border-color: var(--color-line-strong);
+  background: var(--color-card-hover);
+}
+
+.external-card-cover {
+  width: 72px;
+  height: 108px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: linear-gradient(160deg, var(--color-wood-light), var(--color-leather));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+}
+
+.external-card-cover-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(232, 228, 240, 0.55);
+}
+
+.external-card-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.external-card-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.external-card-meta {
+  font-size: 0.78rem;
+  color: var(--color-parchment-dim);
+}
+
+.external-card-format {
+  font-size: 0.72rem;
+  color: var(--color-gold-dim);
+}
+
+.external-card-note {
+  font-size: 0.75rem;
+  color: var(--color-parchment-dim);
+  line-height: 1.4;
+  margin-top: 0.25rem;
+}
+
+.external-card-action {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-parchment);
+  transition: border-color var(--duration-fast), color var(--duration-fast);
+}
+
+.external-card-action:hover {
+  border-color: var(--color-gold-dim);
+  color: var(--color-gold);
+}
+
+.external-empty {
+  color: var(--color-parchment-dim);
+  font-size: 0.9rem;
+  margin-top: var(--space-4);
+}
+
+.external-pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  font-size: 0.85rem;
+  color: var(--color-parchment-dim);
+}
+
+.external-pagination button {
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-line-strong);
+}
+
+.external-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

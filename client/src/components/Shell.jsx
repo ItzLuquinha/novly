@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { usePresence } from '../hooks/usePresence.js';
 import { useResolvedBackground } from '../hooks/useResolvedBackground.js';
@@ -86,6 +86,11 @@ export default function Shell({ children }) {
             Ver tour novamente
           </button>
           <button className="shell-logout" onClick={handleLogout}>Sair</button>
+          <div className="shell-legal">
+            <Link to="/termos">Termos</Link>
+            <span aria-hidden="true"> · </span>
+            <Link to="/privacidade">Privacidade</Link>
+          </div>
         </div>
       </nav>
       <main className="shell-main" style={backgroundStyle}>

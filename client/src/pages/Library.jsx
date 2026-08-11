@@ -101,10 +101,17 @@ export default function Library() {
 
       {justCompleted && (
         <div className="completion-toast">
-          <div className="completion-toast-book" style={{ background: `linear-gradient(135deg, ${justCompleted.spine_color}, ${justCompleted.cover_color})` }} />
+          <div
+            className="completion-toast-book"
+            style={justCompleted.cover_url
+              ? { backgroundImage: `url(${mediaUrl(justCompleted.cover_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : { background: `linear-gradient(135deg, ${justCompleted.spine_color}, ${justCompleted.cover_color})` }}
+          />
           <div>
             <div className="completion-toast-title">Historia concluida</div>
-            <div className="completion-toast-book-name">{justCompleted.title} acabou de ir para a estante de historias concluidas.</div>
+            <div className="completion-toast-book-name">
+              {justCompleted.title} acabou de ir para a estante de historias concluidas.
+            </div>
           </div>
         </div>
       )}
