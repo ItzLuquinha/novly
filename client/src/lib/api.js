@@ -3,11 +3,23 @@ const BASE =
     ? 'https://novly-3cox.onrender.com/api'
     : 'http://localhost:4001/api';
 
+function authHeaders() {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function request(path, options = {}) {
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+
   const res = await fetch(`${BASE}${path}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers,
   });
 
   const contentType = res.headers.get('content-type') || '';
@@ -218,12 +230,14 @@ export const api = {
       body: JSON.stringify({ background_type: backgroundType, background_value: backgroundValue }),
     }),
 
+
   uploadBackgroundImage: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
     const res = await fetch(`${BASE}/uploads/background-image`, {
       method: 'POST',
       credentials: 'include',
+      headers: authHeaders(),
       body: formData,
     });
     const data = await res.json();
@@ -237,6 +251,7 @@ export const api = {
     const res = await fetch(`${BASE}/uploads/character-photo`, {
       method: 'POST',
       credentials: 'include',
+      headers: authHeaders(),
       body: formData,
     });
     const data = await res.json();
@@ -250,6 +265,7 @@ export const api = {
     const res = await fetch(`${BASE}/uploads/book-cover`, {
       method: 'POST',
       credentials: 'include',
+      headers: authHeaders(),
       body: formData,
     });
     const data = await res.json();
