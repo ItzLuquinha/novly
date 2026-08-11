@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import './Book.css';
 
 export default function Book() {
@@ -36,7 +36,7 @@ export default function Book() {
         <div
           className="book-cover"
           style={book.cover_url
-            ? { backgroundImage: `url(${book.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            ? { backgroundImage: `url(${mediaUrl(book.cover_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }
             : { background: `linear-gradient(160deg, ${book.spine_color}, ${book.cover_color})` }}
         />
         <div className="book-info">

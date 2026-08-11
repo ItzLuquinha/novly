@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import './BookLore.css';
 
 export default function BookCharacters() {
@@ -25,7 +25,7 @@ export default function BookCharacters() {
       {characters?.map((c) => (
         <div className="book-lore-entry" key={c.id}>
           {c.photo_url ? (
-            <img className="book-lore-photo" src={c.photo_url} alt={c.name} />
+            <img className="book-lore-photo" src={mediaUrl(c.photo_url)} alt={c.name} />
           ) : (
             <div className="book-lore-avatar" style={{ background: c.photo_color }} />
           )}

@@ -1,16 +1,19 @@
 :root {
-  --color-void: #0d0a08;
-  --color-wood-dark: #1a1410;
-  --color-wood: #2b2118;
-  --color-wood-light: #3a2c1f;
-  --color-leather: #4a3728;
-  --color-parchment: #e8dcc8;
-  --color-parchment-dim: #c9baa0;
-  --color-gold: #c9a86a;
-  --color-gold-dim: #8f7648;
-  --color-ember: #b5673a;
-  --color-line: rgba(232, 220, 200, 0.1);
-  --color-line-strong: rgba(232, 220, 200, 0.18);
+  --color-void: #0c0b12;
+  --color-wood-dark: #12111a;
+  --color-wood: #1a1824;
+  --color-wood-light: #252234;
+  --color-leather: #3a3550;
+  --color-parchment: #e8e4f0;
+  --color-parchment-dim: #a8a2bc;
+  --color-gold: #a78bfa;
+  --color-gold-dim: #7c6bc4;
+  --color-ember: #c084fc;
+  --color-line: rgba(167, 139, 250, 0.08);
+  --color-line-strong: rgba(167, 139, 250, 0.16);
+  --color-card: #16141f;
+  --color-card-hover: #1c1a28;
+  --color-accent-soft: rgba(167, 139, 250, 0.12);
 
   --font-display: 'Fraunces', 'Iowan Old Style', serif;
   --font-reading: 'Source Serif 4', Georgia, serif;
@@ -30,6 +33,10 @@
   --space-12: 3rem;
   --space-16: 4rem;
   --space-24: 6rem;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 }
 
 * {
@@ -81,7 +88,7 @@ input, textarea {
 }
 
 ::selection {
-  background: rgba(201, 168, 106, 0.28);
+  background: rgba(167, 139, 250, 0.3);
   color: var(--color-parchment);
 }
 
@@ -92,8 +99,8 @@ input, textarea {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -102,8 +109,7 @@ input, textarea {
 
 ::-webkit-scrollbar-thumb {
   background: var(--color-leather);
-  border-radius: 6px;
-  border: 2px solid var(--color-wood-dark);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import './Lore.css';
 
 const FIELD_GROUPS = [
@@ -118,7 +118,7 @@ export default function WriterCharacterDetail() {
           className="lore-detail-avatar"
           style={
             character.photo_url
-              ? { backgroundImage: `url(${character.photo_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              ? { backgroundImage: `url(${mediaUrl(character.photo_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }
               : { background: character.photo_color }
           }
         />
@@ -138,7 +138,7 @@ export default function WriterCharacterDetail() {
 
       {character.photo_url ? (
         <div className="character-photo-preview">
-          <img src={character.photo_url} alt={character.name} />
+          <img src={mediaUrl(character.photo_url)} alt={character.name} />
           <button className="character-photo-remove" onClick={handleRemovePhoto}>Remover foto</button>
         </div>
       ) : (

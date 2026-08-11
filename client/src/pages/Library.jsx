@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import './Library.css';
 
 export default function Library() {
@@ -47,7 +47,7 @@ export default function Library() {
         <div
           className="book-spine"
           style={book.cover_url
-            ? { backgroundImage: `url(${book.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            ? { backgroundImage: `url(${mediaUrl(book.cover_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }
             : { background: `linear-gradient(135deg, ${book.spine_color}, ${book.cover_color})` }}
           onClick={() => openBook(book.slug)}
           role="button"

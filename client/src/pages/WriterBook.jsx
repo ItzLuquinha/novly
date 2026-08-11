@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import './WriterBook.css';
 
 export default function WriterBook() {
@@ -145,10 +145,14 @@ export default function WriterBook() {
 
       <div className="writer-form-section">
         <h2 className="writer-chapters-heading" style={{ marginTop: 0 }}>Capa do livro</h2>
+        <p className="cover-size-hint">
+          Tamanho recomendado da capa: <strong>1600 x 2560 pixels</strong> (proporcao 5:8, retrato).
+          Aceita JPG, PNG ou WebP ate 8 MB. Imagens menores tambem funcionam, mas podem perder nitidez na estante.
+        </p>
         {book.cover_url ? (
           <div className="book-cover-preview">
-            <img src={book.cover_url.startsWith('http') ? book.cover_url : book.cover_url} alt="Capa" />
-            <button className="character-photo-remove" onClick={handleRemoveCover}>Remover capa</button>
+            <img src={mediaUrl(book.cover_url)} alt="Capa" />
+            <button className="character-photo-remove" onClick={handleRemoveCover} type="button">Remover capa</button>
           </div>
         ) : (
           <>
@@ -170,8 +174,8 @@ export default function WriterBook() {
             </div>
             {coverTab === 'upload' && (
               <label className="character-photo-upload-zone">
-                <input type="file" accept="image/*" onChange={handleCoverFile} disabled={coverBusy} />
-                <p>{coverBusy ? 'Enviando...' : 'Clique para escolher uma imagem de capa'}</p>
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleCoverFile} disabled={coverBusy} />
+                <p>{coverBusy ? 'Enviando...' : 'Clique para escolher a capa (1600 x 2560 px ideal)'}</p>
               </label>
             )}
             {coverTab === 'url' && (

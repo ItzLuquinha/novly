@@ -1,7 +1,14 @@
-const BASE =
-  import.meta.env.PROD
-    ? 'https://novly-3cox.onrender.com/api'
-    : 'http://localhost:4001/api';
+const API_ORIGIN = import.meta.env.PROD
+  ? 'https://novly-3cox.onrender.com'
+  : 'http://localhost:4001';
+
+const BASE = `${API_ORIGIN}/api`;
+
+export function mediaUrl(path) {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+  return `${API_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
+}
 
 function authHeaders() {
   const token = localStorage.getItem('token');

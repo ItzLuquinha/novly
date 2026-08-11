@@ -22,6 +22,11 @@ export default function Home() {
   return (
     <div className="home-page">
       <h1 className="home-greeting">{greeting}, {user?.username}.</h1>
+      <p className="home-sub">
+        {user?.role === 'escritor'
+          ? 'Pronto para escrever algo memoravel hoje?'
+          : 'Pronto para continuar a historia?'}
+      </p>
 
       <div className="home-grid" data-tour="home-grid">
         {summary?.continue_reading && (

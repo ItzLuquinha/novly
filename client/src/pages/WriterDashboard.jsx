@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import WritingHeatmap from '../components/WritingHeatmap.jsx';
 import WritingCalendar from '../components/WritingCalendar.jsx';
 import WriterFeather from '../components/WriterFeather.jsx';
@@ -163,7 +163,7 @@ export default function WriterDashboard() {
             <div
               className="writer-book-swatch"
               style={book.cover_url
-                ? { backgroundImage: `url(${book.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                ? { backgroundImage: `url(${mediaUrl(book.cover_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                 : { background: `linear-gradient(160deg, ${book.spine_color}, ${book.cover_color})` }}
             />
             <div className="writer-book-row-title">{book.title}</div>
