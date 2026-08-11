@@ -35,16 +35,14 @@ if (!valid) {
     ON CONFLICT(user_id) DO UPDATE SET last_ping_at = datetime('now')
   `).run(user.id);
 
-  const token = signToken(user);
-  res.cookie(COOKIE_NAME, token, {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'none',
-  maxAge: 30 * 24 * 60 * 60 * 1000,
-});
+ const token = signToken(user);
 
-  const { password_hash, ...safeUser } = user;
-  res.json({ user: safeUser });
+const { password_hash, ...safeUser } = user;
+
+res.json({
+  token,
+  user: safeUser
+});
 });
 
 router.post('/logout', (req, res) => {

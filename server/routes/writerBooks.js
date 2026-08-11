@@ -42,7 +42,7 @@ router.get('/books', (req, res) => {
 });
 
 router.post('/books', (req, res) => {
-  const { title, synopsis, category, warnings, writer_notes, cover_color, spine_color } = req.body;
+  const { title, synopsis, category, warnings, writer_notes, cover_color, spine_color, cover_url } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'O livro precisa de um titulo.' });
   }
@@ -51,8 +51,8 @@ router.post('/books', (req, res) => {
   const maxOrder = db.prepare('SELECT COALESCE(MAX(order_index), -1) as m FROM books').get().m;
 
   const result = db.prepare(`
-    INSERT INTO books (title, slug, synopsis, category, warnings, writer_notes, cover_color, spine_color, order_index, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    INSERT INTO books (title, slug, synopsis, category, warnings, writer_notes, cover_color, spine_color, cover_url, order_index, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
   `).run(
     title.trim(),
     slug,
@@ -62,6 +62,7 @@ router.post('/books', (req, res) => {
     writer_notes || '',
     cover_color || '#4a3728',
     spine_color || '#2e2015',
+    cover_url || '',
     maxOrder + 1
   );
 
@@ -75,7 +76,7 @@ router.patch('/books/:id', (req, res) => {
 
   const fields = [];
   const values = [];
-  const allowed = ['title', 'synopsis', 'category', 'status', 'warnings', 'writer_notes', 'cover_color', 'spine_color'];
+  const allowed = ['title', 'synopsis', 'category', 'status', 'warnings', 'writer_notes', 'cover_color', 'spine_color', 'cover_url'];
 
   for (const key of allowed) {
     if (req.body[key] !== undefined) {
@@ -132,6 +133,8 @@ router.delete('/books/:id', (req, res) => {
     db.prepare('DELETE FROM highlights WHERE book_id = ?').run(req.params.id);
     db.prepare('DELETE FROM writing_sessions WHERE book_id = ?').run(req.params.id);
     db.prepare('DELETE FROM special_notes WHERE chapter_id IN (SELECT id FROM chapters WHERE book_id = ?)').run(req.params.id);
+    db.prepare('DELETE FROM kanban_cards WHERE book_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM timeline_events WHERE book_id = ?').run(req.params.id);
     db.prepare('DELETE FROM books WHERE id = ?').run(req.params.id);
     db.exec('COMMIT');
   } catch (err) {
@@ -142,4 +145,139 @@ router.delete('/books/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+
+router.get('/books/:id/export', (req, res) => {
+  const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
+  if (!book) return res.status(404).json({ error: 'Livro nao encontrado.' });
+
+  const chapters = db.prepare(`
+    SELECT title, content, order_index, status, scheduled_for, word_count, published_at
+    FROM chapters WHERE book_id = ? ORDER BY order_index ASC
+  `).all(req.params.id);
+
+  const scenes = db.prepare(`
+    SELECT s.title, s.summary, s.order_index, c.order_index as chapter_order
+    FROM scenes s
+    JOIN chapters c ON c.id = s.chapter_id
+    WHERE c.book_id = ?
+    ORDER BY c.order_index ASC, s.order_index ASC
+  `).all(req.params.id);
+
+  const timeline = db.prepare(`
+    SELECT title, description, event_date, order_index
+    FROM timeline_events WHERE book_id = ? ORDER BY order_index ASC
+  `).all(req.params.id);
+
+  const payload = {
+    version: 1,
+    exported_at: new Date().toISOString(),
+    book: {
+      title: book.title,
+      synopsis: book.synopsis,
+      category: book.category,
+      status: book.status,
+      warnings: book.warnings,
+      writer_notes: book.writer_notes,
+      cover_color: book.cover_color,
+      spine_color: book.spine_color,
+      cover_url: book.cover_url || '',
+    },
+    chapters,
+    scenes,
+    timeline,
+  };
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="${book.slug || 'livro'}-novly.json"`);
+  res.json(payload);
+});
+
+router.post('/books/import', (req, res) => {
+  const data = req.body;
+  if (!data || !data.book || !data.book.title) {
+    return res.status(400).json({ error: 'Arquivo de importacao invalido.' });
+  }
+
+  const b = data.book;
+  const slug = uniqueSlug(b.title.trim());
+  const maxOrder = db.prepare('SELECT COALESCE(MAX(order_index), -1) as m FROM books').get().m;
+
+  db.exec('BEGIN');
+  try {
+    const result = db.prepare(`
+      INSERT INTO books (title, slug, synopsis, category, status, warnings, writer_notes, cover_color, spine_color, cover_url, order_index, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(
+      b.title.trim(),
+      slug,
+      b.synopsis || '',
+      b.category || '',
+      ['em_andamento', 'concluido', 'pausado'].includes(b.status) ? b.status : 'em_andamento',
+      b.warnings || '',
+      b.writer_notes || '',
+      b.cover_color || '#4a3728',
+      b.spine_color || '#2e2015',
+      b.cover_url || '',
+      maxOrder + 1
+    );
+
+    const bookId = result.lastInsertRowid;
+    const chapterIdByOrder = {};
+
+    const chapters = Array.isArray(data.chapters) ? data.chapters : [];
+    for (const ch of chapters) {
+      const chResult = db.prepare(`
+        INSERT INTO chapters (book_id, title, content, order_index, status, scheduled_for, word_count, published_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(
+        bookId,
+        ch.title || 'Capitulo',
+        ch.content || '',
+        ch.order_index ?? 0,
+        ['rascunho', 'publicado', 'agendado'].includes(ch.status) ? ch.status : 'rascunho',
+        ch.scheduled_for || null,
+        ch.word_count || 0,
+        ch.published_at || null
+      );
+      chapterIdByOrder[ch.order_index] = chResult.lastInsertRowid;
+    }
+
+    const scenes = Array.isArray(data.scenes) ? data.scenes : [];
+    for (const sc of scenes) {
+      const chapterId = chapterIdByOrder[sc.chapter_order];
+      if (!chapterId) continue;
+      db.prepare(`
+        INSERT INTO scenes (chapter_id, title, summary, order_index, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+      `).run(
+        chapterId,
+        sc.title || 'Cena',
+        sc.summary || sc.description || '',
+        sc.order_index ?? 0
+      );
+    }
+
+    const timeline = Array.isArray(data.timeline) ? data.timeline : [];
+    for (const ev of timeline) {
+      db.prepare(`
+        INSERT INTO timeline_events (book_id, title, description, event_date, order_index, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).run(
+        bookId,
+        ev.title || 'Evento',
+        ev.description || '',
+        ev.event_date || '',
+        ev.order_index ?? 0
+      );
+    }
+
+    db.exec('COMMIT');
+    const book = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
+    res.status(201).json({ book });
+  } catch (err) {
+    db.exec('ROLLBACK');
+    console.error(err);
+    return res.status(500).json({ error: 'Nao foi possivel importar o livro.' });
+  }
+});
 module.exports = router;

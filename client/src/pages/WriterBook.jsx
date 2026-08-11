@@ -9,6 +9,10 @@ export default function WriterBook() {
   const [book, setBook] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [saveState, setSaveState] = useState('idle');
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [coverError, setCoverError] = useState('');
+  const [coverTab, setCoverTab] = useState('upload');
+  const [coverUrlValue, setCoverUrlValue] = useState('');
   const debounceRef = useRef(null);
 
   function loadChapters() {
@@ -74,6 +78,48 @@ export default function WriterBook() {
     loadChapters();
   }
 
+  async function handleCoverFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverBusy(true);
+    setCoverError('');
+    try {
+      const data = await api.uploadBookCover(file);
+      updateField('cover_url', data.url);
+    } catch (err) {
+      setCoverError(err.message || 'Falha ao enviar a capa.');
+    } finally {
+      setCoverBusy(false);
+      e.target.value = '';
+    }
+  }
+
+  function handleCoverUrlSubmit(e) {
+    e.preventDefault();
+    if (!coverUrlValue.trim()) return;
+    updateField('cover_url', coverUrlValue.trim());
+    setCoverUrlValue('');
+  }
+
+  function handleRemoveCover() {
+    updateField('cover_url', '');
+  }
+
+  async function handleExport() {
+    try {
+      const data = await api.exportBook(bookId);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${book.slug || book.title || 'livro'}-novly.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      window.alert(err.message || 'Falha ao exportar.');
+    }
+  }
+
   if (!book) return null;
 
   return (
@@ -93,10 +139,78 @@ export default function WriterBook() {
         ) : (
           <button className="writer-publish-btn" onClick={handlePublishBook}>Publicar livro</button>
         )}
+        <button className="writer-export-btn" onClick={handleExport}>Exportar</button>
         <button className="writer-delete-book-btn" onClick={handleDeleteBook}>Excluir livro</button>
       </div>
 
       <div className="writer-form-section">
+        <h2 className="writer-chapters-heading" style={{ marginTop: 0 }}>Capa do livro</h2>
+        {book.cover_url ? (
+          <div className="book-cover-preview">
+            <img src={book.cover_url.startsWith('http') ? book.cover_url : book.cover_url} alt="Capa" />
+            <button className="character-photo-remove" onClick={handleRemoveCover}>Remover capa</button>
+          </div>
+        ) : (
+          <>
+            <div className="character-photo-tabs">
+              <button
+                className={`character-photo-tab${coverTab === 'upload' ? ' active' : ''}`}
+                onClick={() => setCoverTab('upload')}
+                type="button"
+              >
+                Da galeria
+              </button>
+              <button
+                className={`character-photo-tab${coverTab === 'url' ? ' active' : ''}`}
+                onClick={() => setCoverTab('url')}
+                type="button"
+              >
+                Link de imagem
+              </button>
+            </div>
+            {coverTab === 'upload' && (
+              <label className="character-photo-upload-zone">
+                <input type="file" accept="image/*" onChange={handleCoverFile} disabled={coverBusy} />
+                <p>{coverBusy ? 'Enviando...' : 'Clique para escolher uma imagem de capa'}</p>
+              </label>
+            )}
+            {coverTab === 'url' && (
+              <form className="character-photo-url-row" onSubmit={handleCoverUrlSubmit}>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={coverUrlValue}
+                  onChange={(e) => setCoverUrlValue(e.target.value)}
+                  required
+                />
+                <button type="submit">Usar este link</button>
+              </form>
+            )}
+            {coverError && <p className="character-photo-error">{coverError}</p>}
+          </>
+        )}
+
+        <div className="writer-field-row" style={{ marginTop: 'var(--space-4)' }}>
+          <div className="writer-field">
+            <label htmlFor="cover_color">Cor da capa</label>
+            <input
+              id="cover_color"
+              type="color"
+              value={book.cover_color || '#4a3728'}
+              onChange={(e) => updateField('cover_color', e.target.value)}
+            />
+          </div>
+          <div className="writer-field">
+            <label htmlFor="spine_color">Cor da lombada</label>
+            <input
+              id="spine_color"
+              type="color"
+              value={book.spine_color || '#3a2b1f'}
+              onChange={(e) => updateField('spine_color', e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="writer-field-row">
           <div className="writer-field">
             <label htmlFor="title">Titulo</label>

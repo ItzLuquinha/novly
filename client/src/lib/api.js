@@ -244,6 +244,25 @@ export const api = {
     return data;
   },
 
+  uploadBookCover: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetch(`${BASE}/uploads/book-cover`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Falha ao enviar a capa.');
+    return data;
+  },
+
+  exportBook: (id) =>
+    request(`/writer/books/${id}/export`),
+
+  importBook: (payload) =>
+    request('/writer/books/import', { method: 'POST', body: JSON.stringify(payload) }),
+
   checkGrammar: (text) =>
     request('/grammar/check', { method: 'POST', body: JSON.stringify({ text }) }),
 };

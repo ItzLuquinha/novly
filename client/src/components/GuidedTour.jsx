@@ -22,7 +22,7 @@ function setTourStatus(storageKey, userId, status) {
     data[userId] = status;
     localStorage.setItem(storageKey, JSON.stringify(data));
   } catch {
-    // ignore storage failures, tour prompt will just show again next time
+
   }
 }
 

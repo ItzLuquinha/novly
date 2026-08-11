@@ -35,7 +35,9 @@ export default function Book() {
       <div className="book-hero">
         <div
           className="book-cover"
-          style={{ background: `linear-gradient(160deg, ${book.spine_color}, ${book.cover_color})` }}
+          style={book.cover_url
+            ? { backgroundImage: `url(${book.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : { background: `linear-gradient(160deg, ${book.spine_color}, ${book.cover_color})` }}
         />
         <div className="book-info">
           <div className="book-category">{book.category}</div>

@@ -12,13 +12,19 @@ function signToken(user) {
 }
 
 function requireAuth(req, res, next) {
-  const token = req.cookies[COOKIE_NAME];
-  if (!token) return res.status(401).json({ error: 'Nao autenticado.' });
+  const auth = req.headers.authorization;
+
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Nao autenticado.' });
+  }
+
+  const token = auth.substring(7);
+
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: 'Sessao invalida ou expirada.' });
   }
 }

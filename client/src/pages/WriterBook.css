@@ -203,3 +203,101 @@
 .writer-chapter-delete:hover {
   color: var(--color-ember);
 }
+
+.writer-export-btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  background: transparent;
+  color: var(--color-parchment);
+  border: 1px solid var(--color-line-strong);
+  cursor: pointer;
+}
+
+.writer-export-btn:hover {
+  border-color: var(--color-gold-dim);
+  color: var(--color-gold);
+}
+
+.book-cover-preview {
+  margin-bottom: var(--space-4);
+}
+
+.book-cover-preview img {
+  max-width: 180px;
+  max-height: 260px;
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+  margin-bottom: var(--space-2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
+
+.character-photo-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.character-photo-tab {
+  padding: var(--space-2) var(--space-4);
+  border-radius: 16px;
+  font-size: 0.75rem;
+  border: 1px solid var(--color-line);
+  background: transparent;
+  color: var(--color-parchment-dim);
+  cursor: pointer;
+}
+
+.character-photo-tab.active {
+  border-color: var(--color-gold-dim);
+  color: var(--color-gold);
+}
+
+.character-photo-upload-zone {
+  display: block;
+  padding: var(--space-8);
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: var(--space-3);
+}
+
+.character-photo-upload-zone:hover {
+  border-color: var(--color-gold-dim);
+}
+
+.character-photo-upload-zone input[type="file"] {
+  display: none;
+}
+
+.character-photo-upload-zone p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-parchment-dim);
+}
+
+.character-photo-url-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.character-photo-url-row input {
+  flex: 1;
+}
+
+.character-photo-remove {
+  font-size: 0.75rem;
+  color: var(--color-parchment-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.character-photo-error {
+  color: #c44;
+  font-size: 0.8rem;
+}

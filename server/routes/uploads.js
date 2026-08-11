@@ -58,4 +58,17 @@ router.post('/character-photo', requireAuth, (req, res) => {
   });
 });
 
+router.post('/book-cover', requireAuth, (req, res) => {
+  req._uploadPrefix = 'cover';
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Falha ao enviar a capa.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhuma imagem recebida.' });
+    }
+    res.json({ url: `/uploads/${req.file.filename}` });
+  });
+});
+
 module.exports = router;

@@ -14,6 +14,7 @@ export default function WriterDashboard() {
   const [newSynopsis, setNewSynopsis] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const navigate = useNavigate();
 
   function load() {
@@ -57,15 +58,39 @@ export default function WriterDashboard() {
     load();
   }
 
+
+  async function handleImportBook(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const res = await api.importBook(data);
+      navigate(`/escritor/livros/${res.book.id}`);
+    } catch (err) {
+      window.alert(err.message || 'Falha ao importar o livro.');
+    } finally {
+      setImporting(false);
+      e.target.value = '';
+    }
+  }
+
   const dailyPercent = stats ? Math.min(100, Math.round((stats.words_today / stats.daily_goal) * 100)) : 0;
 
   return (
     <div className="writer-dashboard">
       <div className="writer-header">
         <h1 className="writer-title">Painel do escritor</h1>
-        <button className="writer-new-book-btn" onClick={() => setShowNewBook(true)} data-tour="dashboard-novo-livro">
-          Novo livro
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+          <label className="writer-new-book-btn" style={{ cursor: 'pointer', margin: 0 }}>
+            {importing ? 'Importando...' : 'Importar livro'}
+            <input type="file" accept=".json,application/json" onChange={handleImportBook} disabled={importing} style={{ display: 'none' }} />
+          </label>
+          <button className="writer-new-book-btn" onClick={() => setShowNewBook(true)} data-tour="dashboard-novo-livro">
+            Novo livro
+          </button>
+        </div>
       </div>
 
       {stats && (
@@ -137,7 +162,9 @@ export default function WriterDashboard() {
           >
             <div
               className="writer-book-swatch"
-              style={{ background: `linear-gradient(160deg, ${book.spine_color}, ${book.cover_color})` }}
+              style={book.cover_url
+                ? { backgroundImage: `url(${book.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                : { background: `linear-gradient(160deg, ${book.spine_color}, ${book.cover_color})` }}
             />
             <div className="writer-book-row-title">{book.title}</div>
             {!book.published_at && (

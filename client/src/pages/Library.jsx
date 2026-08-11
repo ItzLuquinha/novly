@@ -46,7 +46,9 @@ export default function Library() {
       <div className="book-spine-wrap" key={book.id}>
         <div
           className="book-spine"
-          style={{ background: `linear-gradient(135deg, ${book.spine_color}, ${book.cover_color})` }}
+          style={book.cover_url
+            ? { backgroundImage: `url(${book.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : { background: `linear-gradient(135deg, ${book.spine_color}, ${book.cover_color})` }}
           onClick={() => openBook(book.slug)}
           role="button"
           tabIndex={0}
