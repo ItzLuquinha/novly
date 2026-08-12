@@ -70,6 +70,13 @@ export default function Book() {
             </div>
           )}
 
+          {book.reader_guide && (
+            <div className="book-notes book-guide">
+              <div className="book-notes-label">Guia do livro</div>
+              <p className="book-notes-text" style={{ whiteSpace: 'pre-wrap' }}>{book.reader_guide}</p>
+            </div>
+          )}
+
           <div className="book-lore-links">
             <Link to={`/biblioteca/${slug}/personagens`}>Personagens</Link>
             <Link to={`/biblioteca/${slug}/lugares`}>Lugares</Link>

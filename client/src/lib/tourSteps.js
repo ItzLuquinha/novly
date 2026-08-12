@@ -119,7 +119,7 @@ export const WRITER_TOUR = [
     target: '[data-tour="livrinho"]',
     title: 'Conheca o Livrinho',
     text: 'Este livrinho flutuante e sua IA de escrita. Clique nele para pedir continuidade, dialogo, ideias de cena ou destravar o bloqueio. Se voce ficar parado no editor, ele aparece sozinho oferecendo ajuda.',
-    placement: 'left',
+    placement: 'top',
   },
 ];
 
@@ -134,7 +134,7 @@ export const WRITER_EDITOR_TOUR = [
     target: '[data-tour="livrinho"]',
     title: 'Livrinho no editor',
     text: 'Enquanto escreve, o Livrinho le o contexto do capitulo e pode continuar o texto, sugerir dialogo ou cutucar se o teclado ficar quieto por alguns minutos.',
-    placement: 'left',
+    placement: 'top',
   },
   {
     target: '[data-tour="editor-lore"]',

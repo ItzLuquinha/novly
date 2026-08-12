@@ -34,7 +34,7 @@ function findTargetRect(selector) {
   return rect;
 }
 
-function cardPosition(rect, placement, cardWidth = 340, cardHeight = 180) {
+function cardPosition(rect, placement, cardWidth = 340, cardHeight = 280) {
   const margin = 18;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
@@ -42,13 +42,18 @@ function cardPosition(rect, placement, cardWidth = 340, cardHeight = 180) {
   let top;
   let left;
 
-  if (placement === 'right') {
+  let place = placement;
+  if ((place === 'left' || place === 'right') && rect.top > vh * 0.55) {
+    place = 'top';
+  }
+
+  if (place === 'right') {
     top = rect.top + rect.height / 2 - cardHeight / 2;
     left = rect.right + margin;
-  } else if (placement === 'left') {
+  } else if (place === 'left') {
     top = rect.top + rect.height / 2 - cardHeight / 2;
     left = rect.left - cardWidth - margin;
-  } else if (placement === 'top') {
+  } else if (place === 'top') {
     top = rect.top - cardHeight - margin;
     left = rect.left + rect.width / 2 - cardWidth / 2;
   } else {
@@ -56,7 +61,11 @@ function cardPosition(rect, placement, cardWidth = 340, cardHeight = 180) {
     left = rect.left + rect.width / 2 - cardWidth / 2;
   }
 
-  top = Math.max(12, Math.min(top, vh - cardHeight - 12));
+  if (top + cardHeight > vh - 12) {
+    top = Math.max(12, rect.top - cardHeight - margin);
+  }
+  if (top < 12) top = 12;
+  if (top + cardHeight > vh - 12) top = Math.max(12, vh - cardHeight - 12);
   left = Math.max(12, Math.min(left, vw - cardWidth - 12));
 
   return { top, left };

@@ -76,7 +76,7 @@ router.patch('/books/:id', (req, res) => {
 
   const fields = [];
   const values = [];
-  const allowed = ['title', 'synopsis', 'category', 'status', 'warnings', 'writer_notes', 'cover_color', 'spine_color', 'cover_url'];
+  const allowed = ['title', 'synopsis', 'category', 'status', 'warnings', 'writer_notes', 'cover_color', 'spine_color', 'cover_url', 'reader_guide'];
 
   for (const key of allowed) {
     if (req.body[key] !== undefined) {

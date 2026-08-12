@@ -237,6 +237,19 @@ export default function WriterBook() {
           <label htmlFor="notes">Notas do escritor</label>
           <textarea id="notes" value={book.writer_notes || ''} onChange={(e) => updateField('writer_notes', e.target.value)} />
         </div>
+        <div className="writer-field" style={{ marginTop: 'var(--space-4)' }}>
+          <label htmlFor="reader_guide">Guia do livro (primeira pagina)</label>
+          <p className="cover-size-hint" style={{ marginBottom: '0.5rem' }}>
+            Texto que a leitora ve no inicio do livro: mapa de personagens, avisos de tom, como ler, etc.
+          </p>
+          <textarea
+            id="reader_guide"
+            value={book.reader_guide || ''}
+            onChange={(e) => updateField('reader_guide', e.target.value)}
+            rows={6}
+            placeholder="Ex: Este livro tem tres arcos. Clara e a protagonista..."
+          />
+        </div>
         <div className="writer-save-hint">
           {saveState === 'salvando' && 'Salvando...'}
           {saveState === 'salvo' && 'Salvo.'}

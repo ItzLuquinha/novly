@@ -108,7 +108,7 @@ router.get('/:slug/chapters/:chapterId', requireAuth, (req, res) => {
 
   res.json({
     chapter,
-    book: { id: book.id, title: book.title, slug: book.slug },
+    book: { id: book.id, title: book.title, slug: book.slug, reader_guide: book.reader_guide || '' },
     prev_chapter: prevChapter,
     next_chapter: nextChapter,
     is_favorite: !!isFavorite,

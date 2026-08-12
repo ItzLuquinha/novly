@@ -532,6 +532,7 @@ export default function Editor() {
 
           <div className="editor-footer-stats">
             <span><strong>{wordCount}</strong> palavras</span>
+            <span className="editor-page-indicator">~{Math.max(1, Math.ceil(wordCount / 250))} pag.</span>
             <span><strong>{charCount}</strong> caracteres</span>
             <span><strong>{paragraphCount}</strong> paragrafos</span>
             <span><strong>{readingMinutes}</strong> min de leitura</span>

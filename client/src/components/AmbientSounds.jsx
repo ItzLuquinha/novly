@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toggleSound, setVolume } from '../lib/ambientSounds';
 import './AmbientSounds.css';
 
@@ -9,6 +9,26 @@ const SOUNDS = [
   { key: 'instrumental', label: 'Piano instrumental' },
 ];
 
+function extractYoutubeId(input) {
+  if (!input) return '';
+  const trimmed = input.trim();
+  if (/^[\w-]{11}$/.test(trimmed)) return trimmed;
+  try {
+    const u = new URL(trimmed);
+    if (u.hostname.includes('youtu.be')) {
+      return u.pathname.replace('/', '').slice(0, 11);
+    }
+    const v = u.searchParams.get('v');
+    if (v) return v.slice(0, 11);
+    const parts = u.pathname.split('/');
+    const embedIdx = parts.indexOf('embed');
+    if (embedIdx >= 0 && parts[embedIdx + 1]) return parts[embedIdx + 1].slice(0, 11);
+  } catch {
+    return '';
+  }
+  return '';
+}
+
 export default function AmbientSounds() {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState({
@@ -17,6 +37,9 @@ export default function AmbientSounds() {
     maquina_escrever: { on: false, volume: 0.3 },
     instrumental: { on: false, volume: 0.35 },
   });
+  const [ytInput, setYtInput] = useState(() => localStorage.getItem('novly_yt_url') || '');
+  const [ytPlaying, setYtPlaying] = useState(false);
+  const videoId = useMemo(() => extractYoutubeId(ytInput), [ytInput]);
 
   function handleToggle(key) {
     const next = !state[key].on;
@@ -44,7 +67,13 @@ export default function AmbientSounds() {
     setState((s) => ({ ...s, [key]: { ...s[key], volume } }));
   }
 
-  const anyOn = Object.values(state).some((s) => s.on);
+  function handleYtSubmit(e) {
+    e.preventDefault();
+    localStorage.setItem('novly_yt_url', ytInput.trim());
+    if (extractYoutubeId(ytInput)) setYtPlaying(true);
+  }
+
+  const anyOn = Object.values(state).some((s) => s.on) || ytPlaying;
 
   return (
     <>
@@ -85,6 +114,39 @@ export default function AmbientSounds() {
               />
             </div>
           ))}
+
+          <div className="ambient-music-card">
+            <div className="ambient-music-card-head">
+              <span className="ambient-music-title">Musica (YouTube)</span>
+              {ytPlaying && videoId && (
+                <button type="button" className="ambient-music-stop" onClick={() => setYtPlaying(false)}>
+                  Parar
+                </button>
+              )}
+            </div>
+            <p className="ambient-music-hint">Cole o link ou o ID de um video do YouTube.</p>
+            <form className="ambient-music-form" onSubmit={handleYtSubmit}>
+              <input
+                type="text"
+                value={ytInput}
+                onChange={(e) => setYtInput(e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+              />
+              <button type="submit" disabled={!extractYoutubeId(ytInput)}>
+                Tocar
+              </button>
+            </form>
+            {ytPlaying && videoId && (
+              <div className="ambient-music-embed">
+                <iframe
+                  title="Musica YouTube"
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

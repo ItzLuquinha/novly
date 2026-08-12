@@ -23,6 +23,7 @@ export default function Reader() {
   const [comments, setComments] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [pageInfo, setPageInfo] = useState({ current: 1, total: 1 });
   const [topbarHidden, setTopbarHidden] = useState(false);
   const [commentDraft, setCommentDraft] = useState('');
   const [selection, setSelection] = useState(null);
@@ -172,6 +173,35 @@ export default function Reader() {
     );
   }
 
+
+  useEffect(() => {
+    if (!data) return;
+    const words = (data.chapter.content || '').trim().split(/\s+/).filter(Boolean).length;
+    const totalPages = Math.max(1, Math.ceil(words / 250));
+
+    function updatePage() {
+      const el = textRef.current;
+      if (!el) {
+        setPageInfo({ current: 1, total: totalPages });
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      const elTop = window.scrollY + rect.top;
+      const elHeight = el.offsetHeight || 1;
+      const progress = Math.min(1, Math.max(0, (window.scrollY + window.innerHeight * 0.35 - elTop) / elHeight));
+      const current = Math.min(totalPages, Math.max(1, Math.ceil(progress * totalPages) || 1));
+      setPageInfo({ current, total: totalPages });
+    }
+
+    updatePage();
+    window.addEventListener('scroll', updatePage, { passive: true });
+    window.addEventListener('resize', updatePage);
+    return () => {
+      window.removeEventListener('scroll', updatePage);
+      window.removeEventListener('resize', updatePage);
+    };
+  }, [data, chapterId]);
+
   if (error) {
     return (
       <div className="reader-loading">
@@ -194,6 +224,9 @@ export default function Reader() {
         <div className="reader-topbar-left">
           <Link className="reader-back" to={`/biblioteca/${slug}`}>Voltar</Link>
           <span className="reader-topbar-title">{data.book.title}</span>
+          <span className="reader-page-indicator">
+            Pagina {pageInfo.current} de {pageInfo.total}
+          </span>
         </div>
         <div className="reader-topbar-actions">
           <button
@@ -251,6 +284,13 @@ export default function Reader() {
       <div className="reader-body">
         <div className="reader-column" style={{ maxWidth: `${maxWidth}px` }}>
           <h1 className="reader-chapter-title">{data.chapter.title}</h1>
+
+          {!data.prev_chapter && data.book.reader_guide && (
+            <div className="reader-guide-block">
+              <div className="reader-guide-label">Guia do livro</div>
+              <p className="reader-guide-text">{data.book.reader_guide}</p>
+            </div>
+          )}
 
           <div
             ref={textRef}

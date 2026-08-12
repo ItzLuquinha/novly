@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS books (
   cover_color TEXT DEFAULT '#4a3728',
   spine_color TEXT DEFAULT '#3a2b1f',
   cover_url TEXT DEFAULT '',
+  reader_guide TEXT DEFAULT '',
   category TEXT DEFAULT '',
   status TEXT NOT NULL DEFAULT 'em_andamento' CHECK(status IN ('em_andamento', 'concluido', 'pausado')),
   warnings TEXT DEFAULT '',
@@ -331,5 +332,6 @@ ensureColumn('characters', 'outfit_color', "TEXT DEFAULT '#3a2c1f'");
 ensureColumn('characters', 'outfit_style', "TEXT DEFAULT 'casual'");
 ensureColumn('characters', 'photo_url', "TEXT DEFAULT ''");
 ensureColumn('books', 'cover_url', "TEXT DEFAULT ''");
+ensureColumn('books', 'reader_guide', "TEXT DEFAULT ''");
 
 module.exports = db;

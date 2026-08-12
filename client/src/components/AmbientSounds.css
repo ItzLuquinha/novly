@@ -27,6 +27,8 @@
 }
 
 .ambient-panel {
+  min-width: 280px;
+  max-width: 340px;
   position: fixed;
   bottom: 60px;
   right: var(--space-8);
@@ -94,4 +96,81 @@
 .ambient-sound-row input[type="range"] {
   width: 100%;
   accent-color: var(--color-gold);
+}
+
+.ambient-music-card {
+  margin-top: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  background: linear-gradient(160deg, rgba(167, 139, 250, 0.1), rgba(20, 18, 28, 0.9));
+}
+
+.ambient-music-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.ambient-music-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #c4b5fd;
+}
+
+.ambient-music-stop {
+  font-size: 0.7rem;
+  color: #a8a2bc;
+  text-decoration: underline;
+}
+
+.ambient-music-hint {
+  font-size: 0.72rem;
+  color: #a8a2bc;
+  margin-bottom: 0.55rem;
+  line-height: 1.4;
+}
+
+.ambient-music-form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.ambient-music-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  background: #12111a;
+  font-size: 0.75rem;
+  color: #e8e4f0;
+}
+
+.ambient-music-form button {
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  background: #a78bfa;
+  color: #0c0b12;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.ambient-music-form button:disabled {
+  opacity: 0.4;
+}
+
+.ambient-music-embed {
+  margin-top: 0.65rem;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.ambient-music-embed iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
 }

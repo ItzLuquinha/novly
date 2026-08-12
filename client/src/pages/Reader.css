@@ -413,3 +413,34 @@
   font-size: 0.85rem;
   padding: var(--space-8) 0;
 }
+
+.reader-page-indicator {
+  font-size: 0.75rem;
+  color: var(--color-parchment-dim, #a8a2bc);
+  margin-left: 0.75rem;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.reader-guide-block {
+  margin: 0 0 1.75rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  background: rgba(167, 139, 250, 0.06);
+}
+
+.reader-guide-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  margin-bottom: 0.5rem;
+}
+
+.reader-guide-text {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  opacity: 0.9;
+}
