@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import { BACKGROUND_PRESETS } from '../lib/backgroundPresets.js';
 import { getGeminiKey, setGeminiKey } from '../lib/gemini';
 import './Settings.css';
@@ -93,6 +93,44 @@ export default function Settings() {
     }
   }
 
+  async function handleVideoSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const okType = file.type === 'video/mp4' || file.type === 'video/webm' || /\.(mp4|webm)$/i.test(file.name);
+    if (!okType) {
+      setBgMsg({ type: 'error', text: 'Use um arquivo MP4 ou WebM.' });
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 40 * 1024 * 1024) {
+      setBgMsg({ type: 'error', text: 'Video muito grande. Maximo: 40MB.' });
+      e.target.value = '';
+      return;
+    }
+    setBgMsg(null);
+    setBgBusy(true);
+    try {
+      const res = await api.uploadBackgroundVideo(file);
+      await applyBackground('video', res.url);
+    } catch (err) {
+      setBgMsg({ type: 'error', text: err.message });
+      setBgBusy(false);
+    }
+    e.target.value = '';
+  }
+
+  async function handleVideoUrlSubmit(e) {
+    e.preventDefault();
+    const value = urlValue.trim();
+    if (!value) return;
+    const lower = value.toLowerCase().split('?')[0];
+    if (!lower.endsWith('.mp4') && !lower.endsWith('.webm')) {
+      setBgMsg({ type: 'error', text: 'O link precisa terminar em .mp4 ou .webm.' });
+      return;
+    }
+    await applyBackground('video', value);
+  }
+
   async function handleUrlSubmit(e) {
     e.preventDefault();
     if (!urlValue.trim()) return;
@@ -107,6 +145,9 @@ export default function Settings() {
     }
     if (user.background_type === 'upload' || user.background_type === 'url') {
       return { backgroundImage: `url(${user.background_value})` };
+    }
+    if (user.background_type === 'video') {
+      return { background: 'linear-gradient(135deg, #1a1528, #0c0b12)' };
     }
     return {};
   })();
@@ -180,7 +221,7 @@ export default function Settings() {
       <div className="settings-section" style={{ border: 'none', paddingBottom: 0 }}>
         <h2 className="settings-section-heading">Fundo</h2>
         <p className="settings-section-subtitle">
-          Escolha um tema pronto, envie uma foto da galeria, ou use um link de imagem.
+          Escolha um tema pronto, envie uma foto, um wallpaper ao vivo (MP4), ou use um link.
         </p>
 
         <div className="settings-bg-tabs">
@@ -201,6 +242,12 @@ export default function Settings() {
             onClick={() => setBgTab('url')}
           >
             Link de foto
+          </button>
+          <button
+            className={`settings-bg-tab${bgTab === 'live' ? ' active' : ''}`}
+            onClick={() => setBgTab('live')}
+          >
+            Wallpaper vivo
           </button>
         </div>
 
@@ -270,7 +317,19 @@ export default function Settings() {
 
         {user?.background_type && user.background_type !== 'default' && (
           <div className="settings-bg-preview" style={currentPreviewStyle}>
-            <span className="settings-bg-preview-label">Fundo atual</span>
+            <span className="settings-bg-preview-label">
+              Fundo atual{user.background_type === 'video' ? ' (video ao vivo)' : ''}
+            </span>
+            {user.background_type === 'video' && user.background_value && (
+              <video
+                className="settings-bg-video-preview"
+                src={mediaUrl(user.background_value)}
+                muted
+                loop
+                autoPlay
+                playsInline
+              />
+            )}
           </div>
         )}
       </div>

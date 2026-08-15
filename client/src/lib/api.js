@@ -78,6 +78,7 @@ export const api = {
   deleteHighlight: (id) => request(`/highlights/${id}`, { method: 'DELETE' }),
 
   homeSummary: () => request('/home/summary'),
+  presenceStatus: () => request('/home/presence'),
   pingPresence: (location) =>
     request('/home/presence/ping', { method: 'POST', body: JSON.stringify({ location }) }),
 
@@ -249,6 +250,20 @@ export const api = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || 'Falha ao enviar imagem.');
+    return data;
+  },
+
+  uploadBackgroundVideo: async (file) => {
+    const formData = new FormData();
+    formData.append('video', file);
+    const res = await fetch(`${BASE}/uploads/background-video`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders(),
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Falha ao enviar o video.');
     return data;
   },
 

@@ -1,10 +1,24 @@
 const express = require('express');
 const db = require('../db');
+
+function publishDueChapters() {
+  db.prepare(`
+    UPDATE chapters
+    SET status = 'publicado',
+        published_at = COALESCE(published_at, datetime('now')),
+        updated_at = datetime('now')
+    WHERE status = 'agendado'
+      AND scheduled_for IS NOT NULL
+      AND datetime(scheduled_for) <= datetime('now')
+  `).run();
+}
+
 const { requireAuth } = require('../auth');
 
 const router = express.Router();
 
 router.get('/summary', requireAuth, (req, res) => {
+  publishDueChapters();
   const userId = req.user.id;
 
   const inProgress = db.prepare(`
@@ -89,4 +103,22 @@ router.post('/presence/ping', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+router.get('/presence', requireAuth, (req, res) => {
+  const otherUser = db.prepare('SELECT id, username, role FROM users WHERE id != ?').get(req.user.id);
+  if (!otherUser) return res.json({ other_presence: null });
+  const presence = db.prepare('SELECT * FROM presence WHERE user_id = ?').get(otherUser.id);
+  if (!presence) return res.json({ other_presence: null });
+  const lastPing = new Date(presence.last_ping_at + 'Z').getTime();
+  const isOnline = Date.now() - lastPing < 2 * 60 * 1000;
+  res.json({
+    other_presence: {
+      username: otherUser.username,
+      role: otherUser.role,
+      online: isOnline,
+      location: presence.location || '',
+    },
+  });
+});
+
 module.exports = router;
+

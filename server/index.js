@@ -29,8 +29,21 @@ const grammarCheckRoutes = require('./routes/grammarCheck');
 const app = express();
 const PORT = process.env.PORT || 4001;
 
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173', credentials: true }));
-app.use(express.json());
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      return cb(null, true);
+    }
+    return cb(null, false);
+  },
+  credentials: true,
+}));
+app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -67,13 +80,3 @@ app.listen(PORT, () => {
   console.log(`Novly server rodando na porta ${PORT}`);
 });
 
-app.get('/api/debug/users', (req, res) => {
-  const db = require('./db');
-
-  const users = db.prepare(`
-    SELECT id, email, role
-    FROM users
-  `).all();
-
-  res.json(users);
-});

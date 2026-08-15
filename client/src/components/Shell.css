@@ -161,3 +161,30 @@
 .shell-legal a:hover {
   color: var(--color-gold);
 }
+
+
+.shell-main-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-void);
+}
+
+.shell-bg-video {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.shell-main.has-video-bg {
+  position: relative;
+  z-index: 1;
+  background-color: transparent !important;
+}

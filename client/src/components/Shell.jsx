@@ -15,7 +15,7 @@ export default function Shell({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [otherPresence, setOtherPresence] = useState(null);
-  const backgroundStyle = useResolvedBackground(user);
+  const { style: backgroundStyle, videoUrl: bgVideoUrl } = useResolvedBackground(user);
   const tourReplayRef = useRef(null);
 
   usePresence('navegando');
@@ -23,7 +23,7 @@ export default function Shell({ children }) {
   useEffect(() => {
     let mounted = true;
     function poll() {
-      api.homeSummary().then((data) => {
+      api.presenceStatus().then((data) => {
         if (mounted) setOtherPresence(data.other_presence);
       }).catch(() => {});
     }
@@ -95,9 +95,22 @@ export default function Shell({ children }) {
           </div>
         </div>
       </nav>
-      <main className="shell-main" style={backgroundStyle}>
-        {children}
-      </main>
+      <div className="shell-main-wrap">
+        {bgVideoUrl && (
+          <video
+            className="shell-bg-video"
+            src={bgVideoUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+        )}
+        <main className={`shell-main${bgVideoUrl ? ' has-video-bg' : ''}`} style={backgroundStyle}>
+          {children}
+        </main>
+      </div>
       <HiddenNote />
       <AmbientSounds />
       <GuidedTour replayTriggerRef={tourReplayRef} />

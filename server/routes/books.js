@@ -4,13 +4,26 @@ const { requireAuth } = require('../auth');
 
 const router = express.Router();
 
-function bookWithStats(book, userId) {
+function publishDueChapters() {
+  db.prepare(`
+    UPDATE chapters
+    SET status = 'publicado',
+        published_at = COALESCE(published_at, datetime('now')),
+        updated_at = datetime('now')
+    WHERE status = 'agendado'
+      AND scheduled_for IS NOT NULL
+      AND datetime(scheduled_for) <= datetime('now')
+  `).run();
+}
+
+
+function bookWithStats(book, userId, readChapterIdsPreload = null) {
   const chapters = db.prepare(`
     SELECT id, title, order_index, status, word_count, published_at
     FROM chapters WHERE book_id = ? ORDER BY order_index ASC
   `).all(book.id);
 
-  const readChapterIds = new Set(
+  const readChapterIds = readChapterIdsPreload || new Set(
     db.prepare(`
       SELECT chapter_id FROM reading_stats WHERE user_id = ?
     `).all(userId).map((r) => r.chapter_id)
@@ -53,17 +66,24 @@ function bookWithStats(book, userId) {
 }
 
 router.get('/', requireAuth, (req, res) => {
+  publishDueChapters();
   const isWriter = req.user.role === 'escritor';
   const books = db.prepare(`
     SELECT * FROM books ORDER BY order_index ASC, created_at ASC
   `).all();
 
   const visible = isWriter ? books : books.filter(b => b.published_at);
-  const enriched = visible.map(b => bookWithStats(b, req.user.id));
+  const readChapterIds = new Set(
+    db.prepare('SELECT chapter_id FROM reading_stats WHERE user_id = ?')
+      .all(req.user.id)
+      .map((r) => r.chapter_id)
+  );
+  const enriched = visible.map((b) => bookWithStats(b, req.user.id, readChapterIds));
   res.json({ books: enriched });
 });
 
 router.get('/:slug', requireAuth, (req, res) => {
+  publishDueChapters();
   const book = db.prepare('SELECT * FROM books WHERE slug = ?').get(req.params.slug);
   if (!book) return res.status(404).json({ error: 'Livro nao encontrado.' });
   if (!book.published_at && req.user.role !== 'escritor') {
@@ -73,6 +93,7 @@ router.get('/:slug', requireAuth, (req, res) => {
 });
 
 router.get('/:slug/chapters/:chapterId', requireAuth, (req, res) => {
+  publishDueChapters();
   const book = db.prepare('SELECT * FROM books WHERE slug = ?').get(req.params.slug);
   if (!book) return res.status(404).json({ error: 'Livro nao encontrado.' });
 

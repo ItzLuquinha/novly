@@ -14,9 +14,11 @@ const QUICK = [
 ];
 
 function readEditorContext() {
-  const el = document.querySelector('[data-tour="editor-texto"]');
-  if (!el) return '';
-  return el.value || el.textContent || '';
+  const wrap = document.querySelector('[data-tour="editor-texto"]');
+  if (!wrap) return '';
+  const ta = wrap.tagName === 'TEXTAREA' ? wrap : wrap.querySelector('textarea');
+  if (ta) return ta.value || '';
+  return wrap.value || wrap.textContent || '';
 }
 
 export default function Livrinho() {
@@ -47,12 +49,11 @@ export default function Livrinho() {
       setIdleHint(false);
     }
 
-    const el = document.querySelector('[data-tour="editor-texto"]');
+    const el = document.querySelector('[data-tour="editor-texto"] textarea, [data-tour="editor-texto"]');
     if (el) {
       el.addEventListener('input', markActivity);
       el.addEventListener('keydown', markActivity);
     }
-    window.addEventListener('mousemove', markActivity, { passive: true });
 
     const tick = setInterval(() => {
       if (Date.now() - lastTypeRef.current >= IDLE_MS) {
@@ -67,7 +68,6 @@ export default function Livrinho() {
         el.removeEventListener('input', markActivity);
         el.removeEventListener('keydown', markActivity);
       }
-      window.removeEventListener('mousemove', markActivity);
       clearInterval(tick);
     };
   }, [onEditor, location.pathname]);

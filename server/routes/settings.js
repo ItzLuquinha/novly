@@ -59,7 +59,7 @@ router.patch('/password', requireAuth, (req, res) => {
 
 router.patch('/background', requireAuth, (req, res) => {
   const { background_type, background_value } = req.body;
-  const validTypes = ['default', 'preset', 'upload', 'url'];
+  const validTypes = ['default', 'preset', 'upload', 'url', 'video'];
   if (!validTypes.includes(background_type)) {
     return res.status(400).json({ error: 'Tipo de background invalido.' });
   }

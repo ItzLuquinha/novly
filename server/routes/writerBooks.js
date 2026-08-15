@@ -135,6 +135,11 @@ router.delete('/books/:id', (req, res) => {
     db.prepare('DELETE FROM special_notes WHERE chapter_id IN (SELECT id FROM chapters WHERE book_id = ?)').run(req.params.id);
     db.prepare('DELETE FROM kanban_cards WHERE book_id = ?').run(req.params.id);
     db.prepare('DELETE FROM timeline_events WHERE book_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM character_books WHERE book_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM place_books WHERE book_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM object_books WHERE book_id = ?').run(req.params.id);
+    db.prepare("DELETE FROM favorites WHERE target_type = 'book' AND target_id = ?").run(req.params.id);
+    db.prepare('DELETE FROM chapters WHERE book_id = ?').run(req.params.id);
     db.prepare('DELETE FROM books WHERE id = ?').run(req.params.id);
     db.exec('COMMIT');
   } catch (err) {
