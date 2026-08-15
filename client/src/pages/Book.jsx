@@ -9,6 +9,7 @@ export default function Book() {
   const { user } = useAuth();
   const [book, setBook] = useState(null);
   const [error, setError] = useState('');
+  const [coverOpen, setCoverOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,8 +34,12 @@ export default function Book() {
   return (
     <div className="book-page">
       <div className="book-hero">
-        <div
+        <button
+          type="button"
           className="book-cover"
+          title="Ampliar capa"
+          aria-label="Ampliar capa do livro"
+          onClick={() => setCoverOpen(true)}
           style={book.cover_url
             ? { backgroundImage: `url(${mediaUrl(book.cover_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }
             : { background: `linear-gradient(160deg, ${book.spine_color}, ${book.cover_color})` }}
@@ -108,6 +113,45 @@ export default function Book() {
           );
         })}
       </div>
+
+      {coverOpen && (
+        <div
+          className="cover-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Capa ampliada"
+          onClick={() => setCoverOpen(false)}
+        >
+          <button
+            type="button"
+            className="cover-lightbox-close"
+            aria-label="Fechar"
+            onClick={() => setCoverOpen(false)}
+          >
+            ×
+          </button>
+          <div
+            className="cover-lightbox-card"
+            onClick={(e) => e.stopPropagation()}
+            style={book.cover_url
+              ? { backgroundImage: `url(${mediaUrl(book.cover_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : { background: `linear-gradient(160deg, ${book.spine_color}, ${book.cover_color})` }}
+          >
+            {book.cover_url ? (
+              <img
+                className="cover-lightbox-img"
+                src={mediaUrl(book.cover_url)}
+                alt={`Capa de ${book.title}`}
+              />
+            ) : (
+              <div className="cover-lightbox-fallback">
+                <span>{book.title}</span>
+              </div>
+            )}
+          </div>
+          <p className="cover-lightbox-hint">Clique fora para fechar</p>
+        </div>
+      )}
     </div>
   );
 }
