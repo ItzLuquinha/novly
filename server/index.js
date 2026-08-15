@@ -25,6 +25,7 @@ const bookLoreRoutes = require('./routes/bookLore');
 const settingsRoutes = require('./routes/settings');
 const uploadsRoutes = require('./routes/uploads');
 const grammarCheckRoutes = require('./routes/grammarCheck');
+const writerBackupRoutes = require('./routes/writerBackup');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -45,7 +46,11 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadDir = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(require('./db').DATA_DIR || path.join(__dirname, '..', 'data'), 'uploads');
+if (!require('fs').existsSync(uploadDir)) require('fs').mkdirSync(uploadDir, { recursive: true });
+app.use('/uploads', express.static(uploadDir));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
@@ -68,6 +73,7 @@ app.use('/api/books', bookLoreRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/grammar', grammarCheckRoutes);
+app.use('/api/writer', writerBackupRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
@@ -75,6 +81,18 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'Algo deu errado no servidor.' });
 });
+
+try {
+  const seed = require('./seed');
+  seed({
+    writerEmail: process.env.SEED_WRITER_EMAIL || 'escritor@novly.local',
+    writerPassword: process.env.SEED_WRITER_PASSWORD || 'trocar-esta-senha',
+    readerEmail: process.env.SEED_READER_EMAIL || 'leitora@novly.local',
+    readerPassword: process.env.SEED_READER_PASSWORD || 'trocar-esta-senha',
+  });
+} catch (e) {
+  console.error('[novly] Seed opcional falhou:', e.message);
+}
 
 app.listen(PORT, () => {
   console.log(`Novly server rodando na porta ${PORT}`);

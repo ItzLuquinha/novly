@@ -174,3 +174,19 @@
   height: 100%;
   border: 0;
 }
+
+
+@media (max-width: 800px) {
+  .ambient-toggle-btn {
+    bottom: 1rem;
+    right: 1rem;
+  }
+
+  .ambient-panel {
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+    max-width: none;
+    bottom: 4rem;
+  }
+}

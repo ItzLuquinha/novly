@@ -256,3 +256,87 @@
   font-size: 0.8rem;
   color: #a8a2bc;
 }
+
+
+@media (max-width: 800px) {
+  .book-page {
+    max-width: 100%;
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .book-hero {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .book-cover {
+    width: min(180px, 48vw);
+    height: auto;
+    aspect-ratio: 2 / 3;
+  }
+
+  .book-info {
+    width: 100%;
+    text-align: left;
+  }
+
+  .book-category {
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    line-height: 1.45;
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .book-title {
+    font-size: 1.75rem;
+    line-height: 1.15;
+    margin-bottom: 0.85rem;
+  }
+
+  .book-synopsis {
+    font-size: 0.95rem;
+    max-width: none;
+    margin-bottom: 1.25rem;
+  }
+
+  .book-stats-row {
+    gap: 1rem 1.25rem;
+  }
+
+  .book-stat-value {
+    font-size: 1.1rem;
+  }
+
+  .book-lore-links {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .book-lore-links a {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.65rem;
+  }
+
+  .book-notes {
+    padding: 0.85rem;
+  }
+
+  .chapters-heading {
+    margin-top: 1.75rem;
+    font-size: 1.15rem;
+  }
+
+  .chapter-row {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    padding: 0.85rem 0.15rem;
+  }
+
+  .chapter-row-meta {
+    width: 100%;
+    margin-left: 2rem;
+  }
+}

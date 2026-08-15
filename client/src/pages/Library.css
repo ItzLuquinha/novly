@@ -170,3 +170,28 @@
   color: var(--color-parchment-dim);
   padding: var(--space-16) 0;
 }
+
+
+@media (max-width: 800px) {
+  .library-page {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .library-title {
+    font-size: 1.6rem;
+  }
+
+  .shelf {
+    gap: 0.85rem;
+    justify-content: flex-start;
+  }
+
+  .book-spine {
+    width: 100px;
+    height: 150px;
+  }
+
+  .book-spine-title {
+    font-size: 0.72rem;
+  }
+}

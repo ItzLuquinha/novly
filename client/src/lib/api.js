@@ -281,6 +281,28 @@ export const api = {
     return data;
   },
 
+  backupInfo: () => request('/writer/backup/info'),
+  downloadDatabaseBackup: async () => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${BASE}/writer/backup/database`, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error || 'Falha ao baixar backup.');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `novly-backup-${new Date().toISOString().slice(0, 10)}.db`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   uploadBookCover: async (file) => {
     const formData = new FormData();
     formData.append('image', file);

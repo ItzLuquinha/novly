@@ -240,3 +240,21 @@
 .livrinho-form button:disabled {
   opacity: 0.45;
 }
+
+
+@media (max-width: 800px) {
+  .livrinho-root {
+    right: 0.85rem;
+    bottom: 4.5rem;
+  }
+
+  .livrinho-panel {
+    width: min(360px, calc(100vw - 1.5rem));
+    max-height: min(70vh, 480px);
+  }
+
+  .livrinho-fab {
+    width: 52px;
+    height: 52px;
+  }
+}

@@ -4,8 +4,12 @@ const path = require('path');
 const fs = require('fs');
 const { requireAuth } = require('../auth');
 
-const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+const db = require('../db');
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(db.DATA_DIR || path.join(__dirname, '..', 'data'), 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+console.log(`[novly] Uploads: ${UPLOAD_DIR}`);
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const VIDEO_TYPES = ['video/mp4', 'video/webm'];

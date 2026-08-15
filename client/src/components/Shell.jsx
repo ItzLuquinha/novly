@@ -15,6 +15,7 @@ export default function Shell({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [otherPresence, setOtherPresence] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
   const { style: backgroundStyle, videoUrl: bgVideoUrl } = useResolvedBackground(user);
   const tourReplayRef = useRef(null);
 
@@ -57,9 +58,26 @@ export default function Shell({ children }) {
   links.push({ to: '/configuracoes', label: 'Configuracoes', tour: 'nav-configuracoes' });
 
   return (
-    <div className="shell">
-      <nav className="shell-nav">
+    <div className={`shell${navOpen ? ' nav-open' : ''}`}>
+      <header className="shell-mobile-bar">
         <div className="shell-mark" data-tour="nav-marca">Novly</div>
+        <button
+          type="button"
+          className="shell-menu-btn"
+          aria-label={navOpen ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={navOpen}
+          onClick={() => setNavOpen((o) => !o)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+      </header>
+
+      {navOpen && <div className="shell-nav-backdrop" onClick={() => setNavOpen(false)} />}
+
+      <nav className={`shell-nav${navOpen ? ' open' : ''}`}>
+        <div className="shell-mark shell-mark-desktop" data-tour="nav-marca">Novly</div>
         <div className="shell-links">
           {links.map((link) => (
             <NavLink
@@ -68,6 +86,7 @@ export default function Shell({ children }) {
               end={link.to === '/'}
               data-tour={link.tour}
               className={({ isActive }) => `shell-link${isActive ? ' active' : ''}`}
+              onClick={() => setNavOpen(false)}
             >
               {link.label}
             </NavLink>
@@ -84,14 +103,14 @@ export default function Shell({ children }) {
         <div className="shell-user" data-tour="nav-conta">
           <div className="shell-username">{user?.username}</div>
           <div className="shell-role">{user?.role === 'escritor' ? 'Escritor' : 'Leitora'}</div>
-          <button className="shell-tour-replay" onClick={() => tourReplayRef.current?.()}>
+          <button className="shell-tour-replay" onClick={() => { tourReplayRef.current?.(); setNavOpen(false); }}>
             Ver tour novamente
           </button>
           <button className="shell-logout" onClick={handleLogout}>Sair</button>
           <div className="shell-legal">
-            <Link to="/termos">Termos</Link>
+            <Link to="/termos" onClick={() => setNavOpen(false)}>Termos</Link>
             <span aria-hidden="true"> · </span>
-            <Link to="/privacidade">Privacidade</Link>
+            <Link to="/privacidade" onClick={() => setNavOpen(false)}>Privacidade</Link>
           </div>
         </div>
       </nav>

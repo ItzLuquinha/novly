@@ -213,3 +213,18 @@
   position: relative;
   z-index: 1;
 }
+
+
+@media (max-width: 800px) {
+  .settings-page {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .settings-bg-tabs {
+    flex-wrap: wrap;
+  }
+
+  .settings-preset-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

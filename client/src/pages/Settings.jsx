@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { api, mediaUrl } from '../lib/api';
 import { BACKGROUND_PRESETS } from '../lib/backgroundPresets.js';
@@ -25,11 +25,38 @@ export default function Settings() {
 
   const [geminiKey, setGeminiKeyState] = useState(() => getGeminiKey());
   const [geminiMsg, setGeminiMsg] = useState(null);
+  const [backupInfo, setBackupInfo] = useState(null);
+  const [backupMsg, setBackupMsg] = useState(null);
+  const [backupBusy, setBackupBusy] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === 'escritor') loadBackupInfo();
+  }, [user?.role]);
 
   function handleGeminiSave(e) {
     e.preventDefault();
     setGeminiKey(geminiKey);
     setGeminiMsg({ type: 'success', text: geminiKey.trim() ? 'Chave do Livrinho salva neste navegador.' : 'Chave removida.' });
+  }
+
+  async function loadBackupInfo() {
+    try {
+      const info = await api.backupInfo();
+      setBackupInfo(info);
+    } catch (_) {}
+  }
+
+  async function handleDownloadBackup() {
+    setBackupMsg(null);
+    setBackupBusy(true);
+    try {
+      await api.downloadDatabaseBackup();
+      setBackupMsg({ type: 'success', text: 'Download do backup iniciado.' });
+    } catch (err) {
+      setBackupMsg({ type: 'error', text: err.message });
+    } finally {
+      setBackupBusy(false);
+    }
   }
 
   async function handleEmailSubmit(e) {
@@ -333,6 +360,31 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      {user?.role === 'escritor' && (
+        <div className="settings-section">
+          <h2 className="settings-section-heading">Backup dos livros</h2>
+          <p className="settings-section-subtitle">
+            Se o servidor for redeployado sem disco persistente, o banco some.
+            Baixe um backup periodicamente e configure DATA_DIR no Render.
+          </p>
+          {backupInfo && (
+            <p className="settings-size-hint">
+              {backupInfo.books} livro(s), {backupInfo.chapters} capitulo(s)
+              {backupInfo.modified_at ? ` · atualizado ${backupInfo.modified_at}` : ''}
+            </p>
+          )}
+          <button
+            type="button"
+            className="settings-submit-btn"
+            onClick={handleDownloadBackup}
+            disabled={backupBusy}
+          >
+            {backupBusy ? 'Preparando...' : 'Baixar backup do banco'}
+          </button>
+          {backupMsg && <p className={`settings-message ${backupMsg.type}`}>{backupMsg.text}</p>}
+        </div>
+      )}
 
       {user?.role === 'escritor' && (
         <div className="settings-section" data-tour="livrinho-api">

@@ -444,3 +444,52 @@
   white-space: pre-wrap;
   opacity: 0.9;
 }
+
+
+@media (max-width: 800px) {
+  .reader-page {
+    padding-bottom: 2rem;
+  }
+
+  .reader-topbar {
+    padding: 0.65rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .reader-topbar-left {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .reader-topbar-title {
+    font-size: 0.78rem;
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .reader-page-indicator {
+    font-size: 0.65rem;
+    margin-left: 0.35rem;
+  }
+
+  .reader-column {
+    padding: 1rem 1rem 2rem !important;
+    max-width: 100% !important;
+  }
+
+  .reader-chapter-title {
+    font-size: 1.45rem;
+  }
+
+  .reader-nav-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .reader-nav-btn {
+    width: 100%;
+    text-align: left;
+  }
+}

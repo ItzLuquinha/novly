@@ -78,3 +78,15 @@
   font-size: 0.95rem;
   margin-top: var(--space-8);
 }
+
+
+@media (max-width: 800px) {
+  .home-page, .home-grid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .home-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

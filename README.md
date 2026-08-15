@@ -179,3 +179,26 @@ querem manter o projeto no ar a longo prazo.
       styles/               global.css
 ```
 
+
+
+## Persistencia no Render (importante)
+
+Sem disco persistente, **cada deploy apaga o banco e os uploads** (livros, capas, etc.).
+
+1. No Render: **Disks** → crie um disco (ex.: 1GB) montado em `/var/data`
+2. Environment variables do servico:
+
+```
+DATA_DIR=/var/data
+UPLOAD_DIR=/var/data/uploads
+CLIENT_ORIGIN=https://seu-frontend.pages.dev
+JWT_SECRET=uma-string-forte
+SEED_WRITER_EMAIL=seu@email.com
+SEED_WRITER_PASSWORD=sua-senha
+SEED_READER_EMAIL=leitora@email.com
+SEED_READER_PASSWORD=outra-senha
+```
+
+3. Em **Configuracoes** (escritor), use **Baixar backup do banco** de tempos em tempos.
+
+O seed so cria usuarios se a tabela estiver vazia; nunca apaga livros existentes.

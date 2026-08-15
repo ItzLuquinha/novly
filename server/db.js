@@ -2,10 +2,39 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const db = new DatabaseSync(path.join(DATA_DIR, 'novly.db'));
+const DB_PATH = process.env.DATABASE_PATH
+  ? path.resolve(process.env.DATABASE_PATH)
+  : path.join(DATA_DIR, 'novly.db');
+
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+
+const db = new DatabaseSync(DB_PATH);
+
+try {
+  db.exec('PRAGMA journal_mode = WAL;');
+  db.exec('PRAGMA synchronous = NORMAL;');
+  db.exec('PRAGMA foreign_keys = ON;');
+} catch (_) {}
+
+console.log(`[novly] Banco de dados: ${DB_PATH}`);
+
+function backupDatabase() {
+  try {
+    const backupPath = path.join(DATA_DIR, 'novly.backup.db');
+    fs.copyFileSync(DB_PATH, backupPath);
+    console.log(`[novly] Backup local: ${backupPath}`);
+  } catch (err) {
+    console.error('[novly] Falha no backup local:', err.message);
+  }
+}
+
+// backup on boot after schema is ready (called from end of file)
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
@@ -334,4 +363,12 @@ ensureColumn('characters', 'photo_url', "TEXT DEFAULT ''");
 ensureColumn('books', 'cover_url', "TEXT DEFAULT ''");
 ensureColumn('books', 'reader_guide', "TEXT DEFAULT ''");
 
+try {
+  backupDatabase();
+} catch (_) {}
+
+db.DATA_DIR = DATA_DIR;
+db.DB_PATH = DB_PATH;
+db.backupDatabase = backupDatabase;
 module.exports = db;
+
