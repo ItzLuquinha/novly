@@ -6,6 +6,24 @@ const router = express.Router();
 
 router.use(requireAuth, requireRole('escritor'));
 
+function validatePlaceBook(placeId, bookId) {
+  const entity = db.prepare('SELECT id FROM places WHERE id = ?').get(placeId);
+  if (!entity) return { error: [404, 'Lugar nao encontrado.'] };
+  const book = db.prepare('SELECT id FROM books WHERE id = ?').get(bookId);
+  if (!book) return { error: [404, 'Livro nao encontrado.'] };
+  return { entity, book };
+}
+
+function validatePlaceChapter(placeId, chapterId) {
+  const entity = db.prepare('SELECT id FROM places WHERE id = ?').get(placeId);
+  if (!entity) return { error: [404, 'Lugar nao encontrado.'] };
+  const chapter = db.prepare('SELECT id, book_id FROM chapters WHERE id = ?').get(chapterId);
+  if (!chapter) return { error: [404, 'Capitulo nao encontrado.'] };
+  const linkedToBook = db.prepare('SELECT 1 FROM place_books WHERE place_id = ? AND book_id = ?').get(placeId, chapter.book_id);
+  if (!linkedToBook) return { error: [400, 'Associe o lugar ao livro do capitulo antes de vincular o capitulo.'] };
+  return { entity, chapter };
+}
+
 function withAssociations(place) {
   const books = db.prepare(`
     SELECT b.id, b.title, b.slug FROM place_books pb
@@ -76,26 +94,42 @@ router.delete('/places/:id', (req, res) => {
 });
 
 router.post('/places/:id/books/:bookId', (req, res) => {
-  db.prepare(`
-    INSERT OR IGNORE INTO place_books (place_id, book_id) VALUES (?, ?)
-  `).run(req.params.id, req.params.bookId);
-  res.json({ ok: true });
-});
-
-router.delete('/places/:id/books/:bookId', (req, res) => {
-  db.prepare('DELETE FROM place_books WHERE place_id = ? AND book_id = ?')
+  const check = validatePlaceBook(req.params.id, req.params.bookId);
+  if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
+  db.prepare('INSERT OR IGNORE INTO place_books (place_id, book_id) VALUES (?, ?)')
     .run(req.params.id, req.params.bookId);
   res.json({ ok: true });
 });
 
+router.delete('/places/:id/books/:bookId', (req, res) => {
+  const check = validatePlaceBook(req.params.id, req.params.bookId);
+  if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    // Removing an entity from a book also removes chapter links from that same book.
+    db.prepare(`DELETE FROM place_chapters WHERE place_id = ? AND chapter_id IN (SELECT id FROM chapters WHERE book_id = ?)`)
+      .run(req.params.id, req.params.bookId);
+    db.prepare('DELETE FROM place_books WHERE place_id = ? AND book_id = ?')
+      .run(req.params.id, req.params.bookId);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  res.json({ ok: true });
+});
+
 router.post('/places/:id/chapters/:chapterId', (req, res) => {
-  db.prepare(`
-    INSERT OR IGNORE INTO place_chapters (place_id, chapter_id) VALUES (?, ?)
-  `).run(req.params.id, req.params.chapterId);
+  const check = validatePlaceChapter(req.params.id, req.params.chapterId);
+  if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
+  db.prepare('INSERT OR IGNORE INTO place_chapters (place_id, chapter_id) VALUES (?, ?)')
+    .run(req.params.id, req.params.chapterId);
   res.json({ ok: true });
 });
 
 router.delete('/places/:id/chapters/:chapterId', (req, res) => {
+  const entity = db.prepare('SELECT id FROM places WHERE id = ?').get(req.params.id);
+  if (!entity) return res.status(404).json({ error: 'Lugar nao encontrado.' });
   db.prepare('DELETE FROM place_chapters WHERE place_id = ? AND chapter_id = ?')
     .run(req.params.id, req.params.chapterId);
   res.json({ ok: true });

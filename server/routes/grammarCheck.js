@@ -26,8 +26,8 @@ function checkRateLimit() {
 }
 
 router.post('/check', async (req, res) => {
-  const { text } = req.body;
-  if (!text || !text.trim()) {
+  const text = typeof req.body?.text === 'string' ? req.body.text : '';
+  if (!text.trim()) {
     return res.json({ matches: [] });
   }
   if (text.length > MAX_TEXT_LENGTH) {
@@ -51,6 +51,7 @@ router.post('/check', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {

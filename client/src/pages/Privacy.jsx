@@ -30,14 +30,16 @@ export default function Privacy() {
       <h2>3. Armazenamento</h2>
       <p>
         Os dados ficam no banco e no armazenamento de arquivos do servidor onde
-        esta instancia do Novly esta hospedada. A sessao usa token JWT no navegador
-        (localStorage) e, quando configurado, cookies de sessao.
+        esta instancia do Novly esta hospedada. A sessao de autenticacao usa cookie
+        HttpOnly, Secure em producao e com expiracao limitada; o token nao fica disponivel ao JavaScript da pagina.
       </p>
 
       <h2>4. Servicos de terceiros</h2>
       <p>
         O corretor avancado pode enviar trechos de texto a API publica do
-        LanguageTool, conforme a preferencia do usuario. Fontes tipograficas
+        LanguageTool, conforme a preferencia do usuario. Quando o Livrinho e usado,
+        prompts e os trechos de contexto escolhidos podem ser enviados ao Google Gemini.
+        A chave Gemini fica apenas na sessao atual do navegador. Fontes tipograficas
         podem ser carregadas de CDNs (ex: Google Fonts).
       </p>
 
@@ -50,7 +52,7 @@ export default function Privacy() {
 
       <h2>6. Seguranca</h2>
       <p>
-        Usamos hash de senha e autenticacao por token. Nenhuma medida e absoluta;
+        Usamos hash de senha, cookies HttpOnly, sessoes revogaveis e validacao de permissoes no servidor. Nenhuma medida e absoluta;
         proteja suas credenciais e o acesso ao servidor.
       </p>
 

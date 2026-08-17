@@ -68,7 +68,7 @@ export default function Book() {
             </div>
           </div>
 
-          {book.writer_notes && (
+          {user?.role === 'escritor' && book.writer_notes && (
             <div className="book-notes">
               <div className="book-notes-label">Notas do escritor</div>
               <p className="book-notes-text">{book.writer_notes}</p>

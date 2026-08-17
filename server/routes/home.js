@@ -1,86 +1,74 @@
 const express = require('express');
 const db = require('../db');
-
-function publishDueChapters() {
-  db.prepare(`
-    UPDATE chapters
-    SET status = 'publicado',
-        published_at = COALESCE(published_at, datetime('now')),
-        updated_at = datetime('now')
-    WHERE status = 'agendado'
-      AND scheduled_for IS NOT NULL
-      AND datetime(scheduled_for) <= datetime('now')
-  `).run();
-}
-
+const { publishDueChapters } = require('../publishing');
 const { requireAuth } = require('../auth');
+const { boundedString } = require('../security');
 
 const router = express.Router();
 
 router.get('/summary', requireAuth, (req, res) => {
   publishDueChapters();
   const userId = req.user.id;
+  const isWriter = req.user.role === 'escritor';
 
   const inProgress = db.prepare(`
-    SELECT rp.*, b.title as book_title, b.slug as book_slug, b.cover_color, b.spine_color,
-           ch.title as chapter_title
+    SELECT rp.book_id, rp.chapter_id, rp.scroll_position, rp.char_offset, rp.progress_percent, rp.updated_at,
+           b.title as book_title, b.slug as book_slug, b.cover_color, b.spine_color, ch.title as chapter_title
     FROM reading_progress rp
     JOIN books b ON b.id = rp.book_id
     JOIN chapters ch ON ch.id = rp.chapter_id
     WHERE rp.user_id = ?
-    ORDER BY rp.updated_at DESC
-    LIMIT 1
+      ${isWriter ? '' : "AND b.published_at IS NOT NULL AND ch.status = 'publicado'"}
+    ORDER BY rp.updated_at DESC LIMIT 1
   `).get(userId);
 
   const lastUpdatedBook = db.prepare(`
-    SELECT b.*, MAX(c.updated_at) as last_chapter_update
+    SELECT b.id, b.title, b.slug, b.synopsis, b.cover_color, b.spine_color, b.cover_url,
+           b.category, b.status, b.published_at, MAX(c.updated_at) as last_chapter_update
     FROM books b JOIN chapters c ON c.book_id = b.id
-    WHERE c.status = 'publicado'
-    GROUP BY b.id
-    ORDER BY last_chapter_update DESC
-    LIMIT 1
+    WHERE c.status = 'publicado' AND b.published_at IS NOT NULL
+    GROUP BY b.id ORDER BY last_chapter_update DESC LIMIT 1
   `).get();
 
   const lastComment = db.prepare(`
-    SELECT c.*, u.username, u.role as user_role, b.title as book_title, b.slug as book_slug,
-           ch.title as chapter_title
+    SELECT c.id, c.content, c.created_at, c.chapter_id, c.book_id, c.resolved, c.pinned,
+           u.username, u.role as user_role, b.title as book_title, b.slug as book_slug, ch.title as chapter_title
     FROM comments c
     JOIN users u ON u.id = c.user_id
     JOIN books b ON b.id = c.book_id
     JOIN chapters ch ON ch.id = c.chapter_id
-    ORDER BY c.created_at DESC
-    LIMIT 1
+    WHERE ${isWriter ? '1=1' : "b.published_at IS NOT NULL AND ch.status = 'publicado'"}
+    ORDER BY c.created_at DESC LIMIT 1
   `).get();
 
   const recentChapter = db.prepare(`
-    SELECT ch.*, b.title as book_title, b.slug as book_slug
+    SELECT ch.id, ch.title, ch.order_index, ch.word_count, ch.published_at,
+           b.title as book_title, b.slug as book_slug
     FROM chapters ch JOIN books b ON b.id = ch.book_id
-    WHERE ch.status = 'publicado'
-    ORDER BY ch.published_at DESC
-    LIMIT 1
+    WHERE ch.status = 'publicado' AND b.published_at IS NOT NULL
+    ORDER BY ch.published_at DESC LIMIT 1
   `).get();
 
-  const nextScheduled = db.prepare(`
-    SELECT ch.*, b.title as book_title, b.slug as book_slug
+  const nextScheduled = isWriter ? db.prepare(`
+    SELECT ch.id, ch.title, ch.scheduled_for, ch.word_count,
+           b.id as book_id, b.title as book_title, b.slug as book_slug
     FROM chapters ch JOIN books b ON b.id = ch.book_id
     WHERE ch.status = 'agendado' AND ch.scheduled_for IS NOT NULL
-    ORDER BY ch.scheduled_for ASC
-    LIMIT 1
-  `).get();
+    ORDER BY ch.scheduled_for ASC LIMIT 1
+  `).get() : null;
 
   const favoriteHighlight = db.prepare(`
-    SELECT h.* FROM highlights h WHERE h.user_id = ? ORDER BY h.created_at DESC LIMIT 1
+    SELECT h.id, h.book_id, h.chapter_id, h.text, h.note, h.created_at
+    FROM highlights h WHERE h.user_id = ? ORDER BY h.created_at DESC LIMIT 1
   `).get(userId) || null;
 
-  const otherUser = db.prepare('SELECT id, username, role FROM users WHERE id != ?').get(userId);
+  const otherUser = db.prepare('SELECT id, username, role FROM users WHERE id != ? ORDER BY id ASC LIMIT 1').get(userId);
   let otherPresence = null;
   if (otherUser) {
-    const presence = db.prepare('SELECT * FROM presence WHERE user_id = ?').get(otherUser.id);
+    const presence = db.prepare('SELECT last_ping_at FROM presence WHERE user_id = ?').get(otherUser.id);
     if (presence) {
-      const lastPing = new Date(presence.last_ping_at + 'Z').getTime();
-      const now = Date.now();
-      const isOnline = now - lastPing < 2 * 60 * 1000;
-      otherPresence = { username: otherUser.username, role: otherUser.role, online: isOnline };
+      const lastPing = new Date(`${presence.last_ping_at}Z`).getTime();
+      otherPresence = { username: otherUser.username, role: otherUser.role, online: Date.now() - lastPing < 2 * 60 * 1000 };
     }
   }
 
@@ -96,29 +84,28 @@ router.get('/summary', requireAuth, (req, res) => {
 });
 
 router.post('/presence/ping', requireAuth, (req, res) => {
+  const location = boundedString(req.body?.location, 120, '');
   db.prepare(`
     INSERT INTO presence (user_id, last_ping_at, location) VALUES (?, datetime('now'), ?)
     ON CONFLICT(user_id) DO UPDATE SET last_ping_at = datetime('now'), location = excluded.location
-  `).run(req.user.id, req.body.location || '');
+  `).run(req.user.id, location);
   res.json({ ok: true });
 });
 
 router.get('/presence', requireAuth, (req, res) => {
-  const otherUser = db.prepare('SELECT id, username, role FROM users WHERE id != ?').get(req.user.id);
+  const otherUser = db.prepare('SELECT id, username, role FROM users WHERE id != ? ORDER BY id ASC LIMIT 1').get(req.user.id);
   if (!otherUser) return res.json({ other_presence: null });
-  const presence = db.prepare('SELECT * FROM presence WHERE user_id = ?').get(otherUser.id);
+  const presence = db.prepare('SELECT last_ping_at, location FROM presence WHERE user_id = ?').get(otherUser.id);
   if (!presence) return res.json({ other_presence: null });
-  const lastPing = new Date(presence.last_ping_at + 'Z').getTime();
-  const isOnline = Date.now() - lastPing < 2 * 60 * 1000;
+  const lastPing = new Date(`${presence.last_ping_at}Z`).getTime();
   res.json({
     other_presence: {
       username: otherUser.username,
       role: otherUser.role,
-      online: isOnline,
+      online: Date.now() - lastPing < 2 * 60 * 1000,
       location: presence.location || '',
     },
   });
 });
 
 module.exports = router;
-

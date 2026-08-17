@@ -6,6 +6,24 @@ const router = express.Router();
 
 router.use(requireAuth, requireRole('escritor'));
 
+function validateObjectBook(objectId, bookId) {
+  const entity = db.prepare('SELECT id FROM objects WHERE id = ?').get(objectId);
+  if (!entity) return { error: [404, 'Objeto nao encontrado.'] };
+  const book = db.prepare('SELECT id FROM books WHERE id = ?').get(bookId);
+  if (!book) return { error: [404, 'Livro nao encontrado.'] };
+  return { entity, book };
+}
+
+function validateObjectChapter(objectId, chapterId) {
+  const entity = db.prepare('SELECT id FROM objects WHERE id = ?').get(objectId);
+  if (!entity) return { error: [404, 'Objeto nao encontrado.'] };
+  const chapter = db.prepare('SELECT id, book_id FROM chapters WHERE id = ?').get(chapterId);
+  if (!chapter) return { error: [404, 'Capitulo nao encontrado.'] };
+  const linkedToBook = db.prepare('SELECT 1 FROM object_books WHERE object_id = ? AND book_id = ?').get(objectId, chapter.book_id);
+  if (!linkedToBook) return { error: [400, 'Associe o objeto ao livro do capitulo antes de vincular o capitulo.'] };
+  return { entity, chapter };
+}
+
 function withAssociations(object) {
   const books = db.prepare(`
     SELECT b.id, b.title, b.slug FROM object_books ob
@@ -77,26 +95,42 @@ router.delete('/objects/:id', (req, res) => {
 });
 
 router.post('/objects/:id/books/:bookId', (req, res) => {
-  db.prepare(`
-    INSERT OR IGNORE INTO object_books (object_id, book_id) VALUES (?, ?)
-  `).run(req.params.id, req.params.bookId);
-  res.json({ ok: true });
-});
-
-router.delete('/objects/:id/books/:bookId', (req, res) => {
-  db.prepare('DELETE FROM object_books WHERE object_id = ? AND book_id = ?')
+  const check = validateObjectBook(req.params.id, req.params.bookId);
+  if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
+  db.prepare('INSERT OR IGNORE INTO object_books (object_id, book_id) VALUES (?, ?)')
     .run(req.params.id, req.params.bookId);
   res.json({ ok: true });
 });
 
+router.delete('/objects/:id/books/:bookId', (req, res) => {
+  const check = validateObjectBook(req.params.id, req.params.bookId);
+  if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    // Removing an entity from a book also removes chapter links from that same book.
+    db.prepare(`DELETE FROM object_chapters WHERE object_id = ? AND chapter_id IN (SELECT id FROM chapters WHERE book_id = ?)`)
+      .run(req.params.id, req.params.bookId);
+    db.prepare('DELETE FROM object_books WHERE object_id = ? AND book_id = ?')
+      .run(req.params.id, req.params.bookId);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  res.json({ ok: true });
+});
+
 router.post('/objects/:id/chapters/:chapterId', (req, res) => {
-  db.prepare(`
-    INSERT OR IGNORE INTO object_chapters (object_id, chapter_id) VALUES (?, ?)
-  `).run(req.params.id, req.params.chapterId);
+  const check = validateObjectChapter(req.params.id, req.params.chapterId);
+  if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
+  db.prepare('INSERT OR IGNORE INTO object_chapters (object_id, chapter_id) VALUES (?, ?)')
+    .run(req.params.id, req.params.chapterId);
   res.json({ ok: true });
 });
 
 router.delete('/objects/:id/chapters/:chapterId', (req, res) => {
+  const entity = db.prepare('SELECT id FROM objects WHERE id = ?').get(req.params.id);
+  if (!entity) return res.status(404).json({ error: 'Objeto nao encontrado.' });
   db.prepare('DELETE FROM object_chapters WHERE object_id = ? AND chapter_id = ?')
     .run(req.params.id, req.params.chapterId);
   res.json({ ok: true });

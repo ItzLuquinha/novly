@@ -1,8 +1,8 @@
-const API_ORIGIN = import.meta.env.PROD
-  ? 'https://novly-3cox.onrender.com'
-  : 'http://localhost:4001';
+const API_ORIGIN = import.meta.env.DEV
+  ? (import.meta.env.VITE_API_URL || 'http://localhost:4001')
+  : (import.meta.env.VITE_API_URL || window.location.origin);
 
-const BASE = `${API_ORIGIN}/api`;
+const BASE = `${API_ORIGIN.replace(/\/$/, '')}/api`;
 
 export function mediaUrl(path) {
   if (!path) return '';
@@ -10,16 +10,12 @@ export function mediaUrl(path) {
   return `${API_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
-function authHeaders() {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+function authHeaders() { return {}; }
+
 
 async function request(path, options = {}) {
-  const token = localStorage.getItem('token');
   const headers = {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
 
@@ -33,7 +29,10 @@ async function request(path, options = {}) {
   const data = contentType.includes('application/json') ? await res.json() : null;
 
   if (!res.ok) {
-    throw new Error(data?.error || 'Algo deu errado.');
+    const err = new Error(data?.error || 'Algo deu errado.');
+    err.status = res.status;
+    err.details = data;
+    throw err;
   }
 
   return data;
@@ -283,11 +282,7 @@ export const api = {
 
   backupInfo: () => request('/writer/backup/info'),
   downloadDatabaseBackup: async () => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${BASE}/writer/backup/database`, {
-      credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const res = await fetch(`${BASE}/writer/backup/database`, { credentials: 'include' });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data?.error || 'Falha ao baixar backup.');

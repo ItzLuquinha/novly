@@ -7,20 +7,20 @@ const MODELS = [
 ];
 
 export function getGeminiKey() {
-  return localStorage.getItem(GEMINI_KEY_STORAGE) || '';
+  return sessionStorage.getItem(GEMINI_KEY_STORAGE) || '';
 }
 
 export function setGeminiKey(key) {
   const trimmed = (key || '').trim();
-  if (trimmed) localStorage.setItem(GEMINI_KEY_STORAGE, trimmed);
-  else localStorage.removeItem(GEMINI_KEY_STORAGE);
+  if (trimmed) sessionStorage.setItem(GEMINI_KEY_STORAGE, trimmed);
+  else sessionStorage.removeItem(GEMINI_KEY_STORAGE);
 }
 
 async function callModel(model, key, body) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));

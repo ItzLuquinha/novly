@@ -1,6 +1,28 @@
+# Dependencies / builds
 node_modules/
+client/node_modules/
+client/dist/
+
+# Runtime data (contains private books, sessions and uploads)
 data/
-dist/
-.env
-*.log
+uploads/
 server/uploads/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+backups/
+
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+
+# Logs / editor / OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

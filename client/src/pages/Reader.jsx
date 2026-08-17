@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useAuth } from '../hooks/useAuth.jsx';
 import GuidedTour from '../components/GuidedTour.jsx';
 import { READER_CHAPTER_TOUR } from '../lib/tourSteps.js';
 import './Reader.css';
@@ -14,9 +15,11 @@ const THEMES = {
 export default function Reader() {
   const { slug, chapterId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const textRef = useRef(null);
-  const startTimeRef = useRef(Date.now());
-  const savedProgressRef = useRef(false);
+  const progressPercentRef = useRef(0);
+  const completionSentRef = useRef(false);
+  const restoreScrollYRef = useRef(0);
 
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -40,11 +43,14 @@ export default function Reader() {
   useEffect(() => {
     setError('');
     setData(null);
-    startTimeRef.current = Date.now();
-    savedProgressRef.current = false;
+    completionSentRef.current = false;
 
     api.chapter(slug, chapterId)
-      .then((res) => setData(res))
+      .then((res) => {
+        setData(res);
+        progressPercentRef.current = Number(res.current_progress?.progress_percent || 0);
+        restoreScrollYRef.current = Number(res.current_progress?.scroll_position || 0);
+      })
       .catch((e) => setError(e.message));
 
     api.chapterComments(chapterId)
@@ -53,10 +59,22 @@ export default function Reader() {
   }, [slug, chapterId]);
 
   useEffect(() => {
+    if (!data || restoreScrollYRef.current <= 0) return;
+    const targetY = restoreScrollYRef.current;
+    restoreScrollYRef.current = 0;
+    const frame1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => window.scrollTo({ top: targetY, behavior: 'auto' }));
+    });
+    return () => cancelAnimationFrame(frame1);
+  }, [data, chapterId]);
+
+  useEffect(() => {
     function onScroll() {
       const y = window.scrollY;
       setTopbarHidden(y > lastScrollY.current && y > 120);
       lastScrollY.current = y;
+      const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      progressPercentRef.current = Math.min(100, Math.max(0, (y / maxScroll) * 100));
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -64,26 +82,48 @@ export default function Reader() {
 
   useEffect(() => {
     if (!data) return;
-    const interval = setInterval(() => {
+    let cancelled = false;
+
+    async function persistReadingProgress() {
+      const payload = {
+        scroll_position: window.scrollY,
+        char_offset: 0,
+        progress_percent: progressPercentRef.current,
+      };
+      try {
+        await api.saveProgress(slug, chapterId, payload);
+        if (!cancelled && progressPercentRef.current >= 90 && !completionSentRef.current) {
+          completionSentRef.current = true;
+          try {
+            await api.completeChapter(slug, chapterId, {});
+          } catch (_) {
+            // If the server says the minimum reading time has not been reached yet,
+            // allow the next progress heartbeat to try again.
+            completionSentRef.current = false;
+          }
+        }
+      } catch (_) {}
+    }
+
+    persistReadingProgress();
+    const interval = setInterval(persistReadingProgress, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      const finalPercent = progressPercentRef.current;
       api.saveProgress(slug, chapterId, {
         scroll_position: window.scrollY,
         char_offset: 0,
+        progress_percent: finalPercent,
+      }).then(() => {
+        if (finalPercent >= 90 && !completionSentRef.current) {
+          completionSentRef.current = true;
+          return api.completeChapter(slug, chapterId, {}).catch(() => {
+            completionSentRef.current = false;
+          });
+        }
+        return null;
       }).catch(() => {});
-    }, 8000);
-
-    function markComplete() {
-      if (savedProgressRef.current) return;
-      const secondsSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
-      if (secondsSpent < 5) return;
-      savedProgressRef.current = true;
-      api.completeChapter(slug, chapterId, { seconds_spent: secondsSpent }).catch(() => {});
-    }
-
-    window.addEventListener('beforeunload', markComplete);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('beforeunload', markComplete);
-      markComplete();
     };
   }, [data, slug, chapterId]);
 
@@ -359,14 +399,16 @@ export default function Reader() {
                 <span>{new Date(c.created_at + 'Z').toLocaleDateString('pt-BR')}</span>
               </div>
               <div className="comment-content">{c.content}</div>
-              <div className="comment-actions">
-                <button className={c.pinned ? 'active' : ''} onClick={() => togglePin(c.id)}>
-                  {c.pinned ? 'Fixado' : 'Fixar'}
-                </button>
-                <button className={c.resolved ? 'active' : ''} onClick={() => toggleResolve(c.id)}>
-                  {c.resolved ? 'Resolvido' : 'Resolver'}
-                </button>
-              </div>
+              {user?.role === 'escritor' && (
+                <div className="comment-actions">
+                  <button className={c.pinned ? 'active' : ''} onClick={() => togglePin(c.id)}>
+                    {c.pinned ? 'Fixado' : 'Fixar'}
+                  </button>
+                  <button className={c.resolved ? 'active' : ''} onClick={() => toggleResolve(c.id)}>
+                    {c.resolved ? 'Resolvido' : 'Resolver'}
+                  </button>
+                </div>
+              )}
               {c.replies?.map((r) => (
                 <div className="comment-reply" key={r.id}>
                   <div className="comment-meta">

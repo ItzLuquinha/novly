@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
+const { boundedString } = require('../security');
 
 const router = express.Router();
 
@@ -18,7 +19,8 @@ router.post('/chapters/:chapterId/scenes', (req, res) => {
   if (!chapter) return res.status(404).json({ error: 'Capitulo nao encontrado.' });
 
   const { title, summary } = req.body;
-  if (!title || !title.trim()) {
+  const safeTitle = boundedString(title, 300, '').trim();
+  if (!safeTitle) {
     return res.status(400).json({ error: 'A cena precisa de um titulo.' });
   }
 
@@ -28,7 +30,7 @@ router.post('/chapters/:chapterId/scenes', (req, res) => {
   const result = db.prepare(`
     INSERT INTO scenes (chapter_id, title, summary, order_index, created_at)
     VALUES (?, ?, ?, ?, datetime('now'))
-  `).run(req.params.chapterId, title.trim(), summary || '', maxOrder + 1);
+  `).run(req.params.chapterId, safeTitle, boundedString(summary, 10000, ''), maxOrder + 1);
 
   const scene = db.prepare('SELECT * FROM scenes WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json({ scene });
@@ -42,8 +44,12 @@ router.patch('/scenes/:id', (req, res) => {
   const fields = [];
   const values = [];
 
-  if (title !== undefined) { fields.push('title = ?'); values.push(title); }
-  if (summary !== undefined) { fields.push('summary = ?'); values.push(summary); }
+  if (title !== undefined) {
+    const safeTitle = boundedString(title, 300, '').trim();
+    if (!safeTitle) return res.status(400).json({ error: 'A cena precisa de um titulo.' });
+    fields.push('title = ?'); values.push(safeTitle);
+  }
+  if (summary !== undefined) { fields.push('summary = ?'); values.push(boundedString(summary, 10000, '')); }
 
   if (!fields.length) return res.status(400).json({ error: 'Nada para atualizar.' });
 
@@ -63,6 +69,9 @@ router.delete('/scenes/:id', (req, res) => {
 
 router.post('/scenes/:id/reorder', (req, res) => {
   const { direction } = req.body;
+  if (!['up', 'down'].includes(direction)) {
+    return res.status(400).json({ error: 'Direcao invalida.' });
+  }
   const scene = db.prepare('SELECT * FROM scenes WHERE id = ?').get(req.params.id);
   if (!scene) return res.status(404).json({ error: 'Cena nao encontrada.' });
 

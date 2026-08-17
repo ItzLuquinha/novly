@@ -2,6 +2,17 @@ const bcrypt = require('bcryptjs');
 const db = require('./db');
 
 function seed({ writerEmail, writerPassword, readerEmail, readerPassword }) {
+  writerEmail = String(writerEmail || '').toLowerCase().trim();
+  readerEmail = String(readerEmail || '').toLowerCase().trim();
+  writerPassword = String(writerPassword || '');
+  readerPassword = String(readerPassword || '');
+  const hosted = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' || !!process.env.VERCEL || !!process.env.RAILWAY_ENVIRONMENT || !!process.env.FLY_APP_NAME;
+  if (hosted) {
+    const validEmail = (value) => value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    const validPassword = (value) => value.length >= 12 && value.length <= 72 && value !== 'trocar-esta-senha';
+    const weak = !validEmail(writerEmail) || !validEmail(readerEmail) || !validPassword(writerPassword) || !validPassword(readerPassword);
+    if (weak) throw new Error('Credenciais de seed fortes e explicitas sao obrigatorias em ambiente hospedado.');
+  }
   const existing = db.prepare('SELECT COUNT(*) as c FROM users').get();
   if (existing.c > 0) {
     console.log('Usuarios ja existem, pulando seed de usuarios.');
@@ -27,6 +38,10 @@ function seed({ writerEmail, writerPassword, readerEmail, readerPassword }) {
 module.exports = seed;
 
 if (require.main === module) {
+  const hosted = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' || !!process.env.VERCEL || !!process.env.RAILWAY_ENVIRONMENT || !!process.env.FLY_APP_NAME;
+  if (hosted && !(process.env.SEED_WRITER_EMAIL && process.env.SEED_WRITER_PASSWORD && process.env.SEED_READER_EMAIL && process.env.SEED_READER_PASSWORD)) {
+    throw new Error('Defina todas as variaveis SEED_* antes de executar o seed em ambiente hospedado.');
+  }
   seed({
     writerEmail: process.env.SEED_WRITER_EMAIL || 'escritor@novly.local',
     writerPassword: process.env.SEED_WRITER_PASSWORD || 'trocar-esta-senha',

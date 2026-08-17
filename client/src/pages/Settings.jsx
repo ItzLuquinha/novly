@@ -36,7 +36,7 @@ export default function Settings() {
   function handleGeminiSave(e) {
     e.preventDefault();
     setGeminiKey(geminiKey);
-    setGeminiMsg({ type: 'success', text: geminiKey.trim() ? 'Chave do Livrinho salva neste navegador.' : 'Chave removida.' });
+    setGeminiMsg({ type: 'success', text: geminiKey.trim() ? 'Chave do Livrinho salva somente nesta sessao do navegador.' : 'Chave removida.' });
   }
 
   async function loadBackupInfo() {
@@ -216,7 +216,7 @@ export default function Settings() {
 
       <div className="settings-section">
         <h2 className="settings-section-heading">Senha</h2>
-        <p className="settings-section-subtitle">Use pelo menos 8 caracteres.</p>
+        <p className="settings-section-subtitle">Use entre 12 e 72 caracteres para uma senha mais forte.</p>
         <form onSubmit={handlePasswordSubmit}>
           <div className="settings-field">
             <label htmlFor="current-password">Senha atual</label>
@@ -235,6 +235,8 @@ export default function Settings() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              minLength={12}
+              maxLength={72}
               required
             />
           </div>
@@ -390,8 +392,9 @@ export default function Settings() {
         <div className="settings-section" data-tour="livrinho-api">
           <h2 className="settings-section-heading">Livrinho (IA)</h2>
           <p className="settings-section-subtitle">
-            Cole sua API key do Google Gemini. Ela fica so neste navegador (localStorage)
-            e e usada pelo Livrinho para sugerir texto, dialogo e ideias de cena.
+            Cole sua API key do Google Gemini. Ela fica somente nesta sessao do navegador
+            (sessionStorage) e e usada pelo Livrinho para sugerir texto, dialogo e ideias de cena.
+            Ao usar a IA, o prompt e os trechos de contexto selecionados sao enviados ao Google Gemini.
           </p>
           <form onSubmit={handleGeminiSave}>
             <div className="settings-field">

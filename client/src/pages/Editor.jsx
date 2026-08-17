@@ -47,6 +47,9 @@ export default function Editor() {
 
   const debounceRef = useRef(null);
   const dirtyRef = useRef(false);
+  const revisionRef = useRef(0);
+  const saveChainRef = useRef(Promise.resolve());
+  const editSequenceRef = useRef(0);
   const textareaRef = useRef(null);
 
   function autoResize() {
@@ -60,6 +63,7 @@ export default function Editor() {
     setLoadError('');
     api.writerChapter(chapterId).then((data) => {
       setChapter(data.chapter);
+      revisionRef.current = Number(data.chapter.revision || 0);
       setTitle(data.chapter.title);
       setContent(data.chapter.content);
       api.writerBooks().then((res) => {
@@ -175,16 +179,31 @@ export default function Editor() {
 
   const persist = useCallback((nextTitle, nextContent) => {
     setSaveState('salvando');
+    dirtyRef.current = true;
+    const sequence = ++editSequenceRef.current;
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await api.saveChapter(chapterId, { title: nextTitle, content: nextContent });
-        setChapter(res.chapter);
-        dirtyRef.current = false;
-        setSaveState('salvo');
-      } catch (e) {
-        setSaveState('erro');
-      }
+    debounceRef.current = setTimeout(() => {
+      saveChainRef.current = saveChainRef.current.then(async () => {
+        try {
+          const res = await api.saveChapter(chapterId, {
+            title: nextTitle,
+            content: nextContent,
+            expected_revision: revisionRef.current,
+          });
+          revisionRef.current = Number(res.chapter.revision || revisionRef.current + 1);
+          setChapter(res.chapter);
+          if (sequence === editSequenceRef.current) {
+            dirtyRef.current = false;
+            setSaveState('salvo');
+          }
+        } catch (e) {
+          dirtyRef.current = true;
+          setSaveState('erro');
+          if (e.status === 409) {
+            console.error('Conflito de edicao detectado; recarregue o capitulo antes de sobrescrever outra versao.');
+          }
+        }
+      });
     }, 900);
   }, [chapterId]);
 
@@ -321,6 +340,7 @@ export default function Editor() {
     if (!window.confirm('Restaurar esta versao? O estado atual sera salvo antes, para nao se perder.')) return;
     const res = await api.restoreVersion(chapterId, versionId);
     setChapter(res.chapter);
+    revisionRef.current = Number(res.chapter.revision || 0);
     setTitle(res.chapter.title);
     setContent(res.chapter.content);
     const data = await api.chapterVersions(chapterId);

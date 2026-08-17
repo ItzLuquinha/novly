@@ -6,19 +6,24 @@
   "scripts": {
     "seed": "node server/seed.js",
     "server": "node server/index.js",
-    "client": "npm --prefix client run dev"
+    "client": "npm --prefix client run dev",
+    "test": "node --test tests/*.test.js",
+    "check:server": "node scripts/check-server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6",
-    "dictionary-pt": "^4.0.0",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "multer": "^2.2.0",
-    "nspell": "^2.1.5"
+    "bcryptjs": "3.0.3",
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.6",
+    "dictionary-pt": "4.0.0",
+    "express": "5.2.1",
+    "jsonwebtoken": "9.0.3",
+    "multer": "2.2.0",
+    "nspell": "2.1.5"
+  },
+  "engines": {
+    "node": ">=22.16.0"
   }
 }

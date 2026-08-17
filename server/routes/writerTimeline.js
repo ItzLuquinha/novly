@@ -1,10 +1,20 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
+const { positiveInt, boundedString } = require('../security');
 
 const router = express.Router();
 
 router.use(requireAuth, requireRole('escritor'));
+
+function chapterIdForBook(value, bookId) {
+  if (value === undefined || value === null || value === '') return { chapterId: null };
+  const chapterId = positiveInt(value);
+  if (!chapterId) return { error: 'Capitulo invalido.' };
+  const chapter = db.prepare('SELECT id FROM chapters WHERE id = ? AND book_id = ?').get(chapterId, bookId);
+  if (!chapter) return { error: 'O capitulo precisa pertencer ao mesmo livro do evento.' };
+  return { chapterId };
+}
 
 router.get('/books/:bookId/timeline', (req, res) => {
   const events = db.prepare(`
@@ -20,9 +30,12 @@ router.post('/books/:bookId/timeline', (req, res) => {
   if (!book) return res.status(404).json({ error: 'Livro nao encontrado.' });
 
   const { title, description, event_date, chapter_id } = req.body;
-  if (!title || !title.trim()) {
+  const safeTitle = boundedString(title, 300, '').trim();
+  if (!safeTitle) {
     return res.status(400).json({ error: 'O evento precisa de um titulo.' });
   }
+  const chapterCheck = chapterIdForBook(chapter_id, Number(req.params.bookId));
+  if (chapterCheck.error) return res.status(400).json({ error: chapterCheck.error });
 
   const maxOrder = db.prepare('SELECT COALESCE(MAX(order_index), -1) as m FROM timeline_events WHERE book_id = ?')
     .get(req.params.bookId).m;
@@ -32,10 +45,10 @@ router.post('/books/:bookId/timeline', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
   `).run(
     req.params.bookId,
-    title.trim(),
-    description || '',
-    event_date || '',
-    chapter_id || null,
+    safeTitle,
+    boundedString(description, 5000, ''),
+    boundedString(event_date, 120, ''),
+    chapterCheck.chapterId,
     maxOrder + 1
   );
 
@@ -56,10 +69,21 @@ router.patch('/timeline/:id', (req, res) => {
   const fields = [];
   const values = [];
   for (const key of editableFields) {
-    if (req.body[key] !== undefined) {
-      fields.push(`${key} = ?`);
-      values.push(req.body[key]);
+    if (req.body[key] === undefined) continue;
+    if (key === 'chapter_id') {
+      const chapterCheck = chapterIdForBook(req.body[key], event.book_id);
+      if (chapterCheck.error) return res.status(400).json({ error: chapterCheck.error });
+      fields.push('chapter_id = ?'); values.push(chapterCheck.chapterId);
+      continue;
     }
+    if (key === 'title') {
+      const safeTitle = boundedString(req.body[key], 300, '').trim();
+      if (!safeTitle) return res.status(400).json({ error: 'O evento precisa de um titulo.' });
+      fields.push('title = ?'); values.push(safeTitle);
+      continue;
+    }
+    fields.push(`${key} = ?`);
+    values.push(boundedString(req.body[key], key === 'description' ? 5000 : 120, ''));
   }
   if (!fields.length) return res.status(400).json({ error: 'Nada para atualizar.' });
 
@@ -82,6 +106,9 @@ router.delete('/timeline/:id', (req, res) => {
 
 router.post('/timeline/:id/reorder', (req, res) => {
   const { direction } = req.body;
+  if (!['up', 'down'].includes(direction)) {
+    return res.status(400).json({ error: 'Direcao invalida.' });
+  }
   const event = db.prepare('SELECT * FROM timeline_events WHERE id = ?').get(req.params.id);
   if (!event) return res.status(404).json({ error: 'Evento nao encontrado.' });
 

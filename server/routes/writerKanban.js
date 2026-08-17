@@ -1,10 +1,20 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
+const { positiveInt, boundedString } = require('../security');
 
 const router = express.Router();
 
 router.use(requireAuth, requireRole('escritor'));
+
+function chapterIdForBook(value, bookId) {
+  if (value === undefined || value === null || value === '') return { chapterId: null };
+  const chapterId = positiveInt(value);
+  if (!chapterId) return { error: 'Capitulo invalido.' };
+  const chapter = db.prepare('SELECT id FROM chapters WHERE id = ? AND book_id = ?').get(chapterId, bookId);
+  if (!chapter) return { error: 'O capitulo precisa pertencer ao mesmo livro do cartao.' };
+  return { chapterId };
+}
 
 router.get('/books/:bookId/kanban', (req, res) => {
   const cards = db.prepare(`
@@ -20,9 +30,12 @@ router.post('/books/:bookId/kanban', (req, res) => {
   if (!book) return res.status(404).json({ error: 'Livro nao encontrado.' });
 
   const { title, description, chapter_id, status } = req.body;
-  if (!title || !title.trim()) {
+  const safeTitle = boundedString(title, 300, '').trim();
+  if (!safeTitle) {
     return res.status(400).json({ error: 'O cartao precisa de um titulo.' });
   }
+  const chapterCheck = chapterIdForBook(chapter_id, Number(req.params.bookId));
+  if (chapterCheck.error) return res.status(400).json({ error: chapterCheck.error });
 
   const validStatus = ['ideia', 'rascunho', 'revisao', 'pronto'].includes(status) ? status : 'ideia';
   const maxOrder = db.prepare(`
@@ -32,7 +45,7 @@ router.post('/books/:bookId/kanban', (req, res) => {
   const result = db.prepare(`
     INSERT INTO kanban_cards (book_id, chapter_id, title, description, status, order_index, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-  `).run(req.params.bookId, chapter_id || null, title.trim(), description || '', validStatus, maxOrder + 1);
+  `).run(req.params.bookId, chapterCheck.chapterId, safeTitle, boundedString(description, 5000, ''), validStatus, maxOrder + 1);
 
   const card = db.prepare(`
     SELECT kc.*, c.title as chapter_title FROM kanban_cards kc
@@ -50,9 +63,17 @@ router.patch('/kanban/:id', (req, res) => {
   const fields = [];
   const values = [];
 
-  if (title !== undefined) { fields.push('title = ?'); values.push(title); }
-  if (description !== undefined) { fields.push('description = ?'); values.push(description); }
-  if (chapter_id !== undefined) { fields.push('chapter_id = ?'); values.push(chapter_id || null); }
+  if (title !== undefined) {
+    const safeTitle = boundedString(title, 300, '').trim();
+    if (!safeTitle) return res.status(400).json({ error: 'O cartao precisa de um titulo.' });
+    fields.push('title = ?'); values.push(safeTitle);
+  }
+  if (description !== undefined) { fields.push('description = ?'); values.push(boundedString(description, 5000, '')); }
+  if (chapter_id !== undefined) {
+    const chapterCheck = chapterIdForBook(chapter_id, card.book_id);
+    if (chapterCheck.error) return res.status(400).json({ error: chapterCheck.error });
+    fields.push('chapter_id = ?'); values.push(chapterCheck.chapterId);
+  }
 
   if (!fields.length) return res.status(400).json({ error: 'Nada para atualizar.' });
 

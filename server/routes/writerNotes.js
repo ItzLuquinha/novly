@@ -1,39 +1,55 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
+const { positiveInt, boundedString } = require('../security');
 
 const router = express.Router();
-
 router.use(requireAuth, requireRole('escritor'));
 
-router.get('/notes', (req, res) => {
-  const notes = db.prepare(`
-    SELECT sn.*, c.title as chapter_title FROM special_notes sn
+function validMonthDay(value) {
+  if (!/^\d{2}-\d{2}$/.test(value || '')) return false;
+  const [month, day] = value.split('-').map(Number);
+  const d = new Date(Date.UTC(2000, month - 1, day));
+  return d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
+}
+
+function noteSelect(where = '') {
+  return `
+    SELECT sn.id, sn.message, sn.special_date, sn.chapter_id, sn.created_at,
+           c.title as chapter_title, MAX(nd.found_at) as found_at,
+           COUNT(nd.found_at) as discovery_count
+    FROM special_notes sn
     LEFT JOIN chapters c ON c.id = sn.chapter_id
-    ORDER BY sn.special_date ASC
-  `).all();
+    LEFT JOIN note_discoveries nd ON nd.note_id = sn.id
+    ${where}
+    GROUP BY sn.id
+  `;
+}
+
+router.get('/notes', (req, res) => {
+  const notes = db.prepare(`${noteSelect()} ORDER BY sn.special_date ASC, sn.id ASC`).all();
   res.json({ notes });
 });
 
 router.post('/notes', (req, res) => {
-  const { message, special_date, chapter_id } = req.body;
-  if (!message || !message.trim()) {
-    return res.status(400).json({ error: 'O bilhete precisa de uma mensagem.' });
-  }
-  if (!special_date || !/^\d{2}-\d{2}$/.test(special_date)) {
-    return res.status(400).json({ error: 'A data precisa estar no formato MM-DD.' });
+  const message = boundedString(req.body?.message, 5000, '').trim();
+  const specialDate = String(req.body?.special_date || '');
+  if (!message) return res.status(400).json({ error: 'O bilhete precisa de uma mensagem.' });
+  if (!validMonthDay(specialDate)) return res.status(400).json({ error: 'A data do bilhete e invalida.' });
+
+  let chapterId = null;
+  if (req.body?.chapter_id) {
+    chapterId = positiveInt(req.body.chapter_id);
+    if (!chapterId || !db.prepare('SELECT 1 FROM chapters WHERE id = ?').get(chapterId)) {
+      return res.status(400).json({ error: 'Capitulo do bilhete invalido.' });
+    }
   }
 
   const result = db.prepare(`
     INSERT INTO special_notes (message, special_date, chapter_id, created_at)
     VALUES (?, ?, ?, datetime('now'))
-  `).run(message.trim(), special_date, chapter_id || null);
-
-  const note = db.prepare(`
-    SELECT sn.*, c.title as chapter_title FROM special_notes sn
-    LEFT JOIN chapters c ON c.id = sn.chapter_id WHERE sn.id = ?
-  `).get(result.lastInsertRowid);
-
+  `).run(message, specialDate, chapterId);
+  const note = db.prepare(`${noteSelect('WHERE sn.id = ?')}`).get(result.lastInsertRowid);
   res.status(201).json({ note });
 });
 
@@ -41,34 +57,34 @@ router.patch('/notes/:id', (req, res) => {
   const note = db.prepare('SELECT * FROM special_notes WHERE id = ?').get(req.params.id);
   if (!note) return res.status(404).json({ error: 'Bilhete nao encontrado.' });
 
-  const { message, special_date, chapter_id } = req.body;
   const fields = [];
   const values = [];
-
-  if (message !== undefined) { fields.push('message = ?'); values.push(message); }
-  if (special_date !== undefined) {
-    if (!/^\d{2}-\d{2}$/.test(special_date)) {
-      return res.status(400).json({ error: 'A data precisa estar no formato MM-DD.' });
-    }
-    fields.push('special_date = ?');
-    values.push(special_date);
+  if (req.body.message !== undefined) {
+    const message = boundedString(req.body.message, 5000, '').trim();
+    if (!message) return res.status(400).json({ error: 'O bilhete precisa de uma mensagem.' });
+    fields.push('message = ?'); values.push(message);
   }
-  if (chapter_id !== undefined) { fields.push('chapter_id = ?'); values.push(chapter_id || null); }
-
+  if (req.body.special_date !== undefined) {
+    if (!validMonthDay(req.body.special_date)) return res.status(400).json({ error: 'A data do bilhete e invalida.' });
+    fields.push('special_date = ?'); values.push(req.body.special_date);
+  }
+  if (req.body.chapter_id !== undefined) {
+    const chapterId = req.body.chapter_id ? positiveInt(req.body.chapter_id) : null;
+    if (chapterId && !db.prepare('SELECT 1 FROM chapters WHERE id = ?').get(chapterId)) {
+      return res.status(400).json({ error: 'Capitulo do bilhete invalido.' });
+    }
+    fields.push('chapter_id = ?'); values.push(chapterId);
+  }
   if (!fields.length) return res.status(400).json({ error: 'Nada para atualizar.' });
 
   values.push(req.params.id);
   db.prepare(`UPDATE special_notes SET ${fields.join(', ')} WHERE id = ?`).run(...values);
-
-  const updated = db.prepare(`
-    SELECT sn.*, c.title as chapter_title FROM special_notes sn
-    LEFT JOIN chapters c ON c.id = sn.chapter_id WHERE sn.id = ?
-  `).get(req.params.id);
+  const updated = db.prepare(`${noteSelect('WHERE sn.id = ?')}`).get(req.params.id);
   res.json({ note: updated });
 });
 
 router.delete('/notes/:id', (req, res) => {
-  const note = db.prepare('SELECT * FROM special_notes WHERE id = ?').get(req.params.id);
+  const note = db.prepare('SELECT 1 FROM special_notes WHERE id = ?').get(req.params.id);
   if (!note) return res.status(404).json({ error: 'Bilhete nao encontrado.' });
   db.prepare('DELETE FROM special_notes WHERE id = ?').run(req.params.id);
   res.json({ ok: true });

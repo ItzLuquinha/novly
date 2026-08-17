@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
+const { dateKey } = require('../timezone');
 
 const router = express.Router();
 
@@ -13,12 +14,10 @@ function countWords(text) {
 }
 
 function todayWordsForUser(userId) {
-  const row = db.prepare(`
-    SELECT COALESCE(SUM(words_written), 0) as total
-    FROM writing_sessions
-    WHERE user_id = ? AND date(started_at) = date('now')
-  `).get(userId);
-  return row.total;
+  const today = dateKey();
+  return db.prepare('SELECT words_written, started_at FROM writing_sessions WHERE user_id = ? AND words_written > 0')
+    .all(userId)
+    .reduce((sum, row) => sum + (dateKey(row.started_at) === today ? (row.words_written || 0) : 0), 0);
 }
 
 router.get('/books/:bookId/chapters', (req, res) => {
@@ -109,34 +108,50 @@ router.put('/chapters/:id', (req, res) => {
   const chapter = db.prepare('SELECT * FROM chapters WHERE id = ?').get(req.params.id);
   if (!chapter) return res.status(404).json({ error: 'Capitulo nao encontrado.' });
 
-  const { title, content } = req.body;
-  const newTitle = title !== undefined ? title : chapter.title;
-  const newContent = content !== undefined ? content : chapter.content;
+  const expectedRevision = Number(req.body?.expected_revision);
+  if (!Number.isInteger(expectedRevision) || expectedRevision < 0) {
+    return res.status(428).json({ error: 'Recarregue o capitulo antes de salvar novamente.' });
+  }
+  if (expectedRevision !== Number(chapter.revision || 0)) {
+    return res.status(409).json({ error: 'Este capitulo foi alterado em outra aba ou sessao.', current_revision: chapter.revision });
+  }
+
+  const newTitle = req.body.title !== undefined ? String(req.body.title).slice(0, 300) : chapter.title;
+  const newContent = req.body.content !== undefined ? String(req.body.content) : chapter.content;
+  if (newContent.length > 5_000_000) return res.status(413).json({ error: 'Capitulo grande demais para salvar de uma vez.' });
   const wordCount = countWords(newContent);
-  const previousWordCount = chapter.word_count || 0;
-  const delta = wordCount - previousWordCount;
+  const delta = Math.max(0, wordCount - (chapter.word_count || 0));
 
-  db.prepare(`
-    UPDATE chapters SET title = ?, content = ?, word_count = ?, updated_at = datetime('now')
-    WHERE id = ?
-  `).run(newTitle, newContent, wordCount, req.params.id);
+  const update = db.prepare(`
+    UPDATE chapters SET title = ?, content = ?, word_count = ?, revision = revision + 1, updated_at = datetime('now')
+    WHERE id = ? AND revision = ?
+  `).run(newTitle, newContent, wordCount, req.params.id, expectedRevision);
+  if (!update.changes) {
+    const current = db.prepare('SELECT revision FROM chapters WHERE id = ?').get(req.params.id);
+    return res.status(409).json({ error: 'Conflito de edicao. Recarregue antes de continuar.', current_revision: current?.revision });
+  }
 
-  if (delta !== 0) {
+  // Prevent abandoned tabs or a session that crossed the configured local midnight
+  // from attributing today's words to yesterday.
+  db.prepare(`UPDATE writing_sessions SET ended_at = datetime('now') WHERE user_id = ? AND ended_at IS NULL AND started_at < datetime('now', '-8 hours')`).run(req.user.id);
+  const currentDay = dateKey();
+  const openRows = db.prepare('SELECT id, started_at FROM writing_sessions WHERE user_id = ? AND ended_at IS NULL').all(req.user.id);
+  for (const row of openRows) {
+    if (dateKey(row.started_at) !== currentDay) {
+      db.prepare(`UPDATE writing_sessions SET ended_at = datetime('now') WHERE id = ?`).run(row.id);
+    }
+  }
+
+  if (delta > 0) {
     const openSession = db.prepare(`
-      SELECT * FROM writing_sessions
-      WHERE user_id = ? AND chapter_id = ? AND ended_at IS NULL
+      SELECT * FROM writing_sessions WHERE user_id = ? AND chapter_id = ? AND ended_at IS NULL
       ORDER BY started_at DESC LIMIT 1
     `).get(req.user.id, req.params.id);
-
     if (openSession) {
-      db.prepare(`
-        UPDATE writing_sessions SET words_written = words_written + ? WHERE id = ?
-      `).run(delta, openSession.id);
+      db.prepare('UPDATE writing_sessions SET words_written = words_written + ? WHERE id = ?').run(delta, openSession.id);
     } else {
-      db.prepare(`
-        INSERT INTO writing_sessions (user_id, chapter_id, book_id, words_written, started_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).run(req.user.id, req.params.id, chapter.book_id, delta);
+      db.prepare(`INSERT INTO writing_sessions (user_id, chapter_id, book_id, words_written, started_at) VALUES (?, ?, ?, ?, datetime('now'))`)
+        .run(req.user.id, req.params.id, chapter.book_id, delta);
     }
   }
 
@@ -187,7 +202,7 @@ router.post('/chapters/:id/versions/:versionId/restore', (req, res) => {
   `).run(chapter.id, chapter.title, chapter.content, chapter.word_count);
 
   db.prepare(`
-    UPDATE chapters SET title = ?, content = ?, word_count = ?, updated_at = datetime('now')
+    UPDATE chapters SET title = ?, content = ?, word_count = ?, revision = revision + 1, updated_at = datetime('now')
     WHERE id = ?
   `).run(version.title, version.content, version.word_count, chapter.id);
 
@@ -213,7 +228,7 @@ router.post('/chapters/:id/unpublish', (req, res) => {
   if (!chapter) return res.status(404).json({ error: 'Capitulo nao encontrado.' });
 
   db.prepare(`
-    UPDATE chapters SET status = 'rascunho', published_at = NULL, updated_at = datetime('now')
+    UPDATE chapters SET status = 'rascunho', scheduled_for = NULL, published_at = NULL, updated_at = datetime('now')
     WHERE id = ?
   `).run(req.params.id);
 
@@ -226,12 +241,14 @@ router.post('/chapters/:id/schedule', (req, res) => {
   if (!chapter) return res.status(404).json({ error: 'Capitulo nao encontrado.' });
 
   const { scheduled_for } = req.body;
-  if (!scheduled_for) return res.status(400).json({ error: 'Informe uma data para o agendamento.' });
+  const when = new Date(scheduled_for);
+  if (!scheduled_for || Number.isNaN(when.getTime())) return res.status(400).json({ error: 'Informe uma data valida para o agendamento.' });
+  if (when.getTime() <= Date.now()) return res.status(400).json({ error: 'O agendamento precisa estar no futuro.' });
 
   db.prepare(`
-    UPDATE chapters SET status = 'agendado', scheduled_for = ?, updated_at = datetime('now')
+    UPDATE chapters SET status = 'agendado', scheduled_for = ?, published_at = NULL, updated_at = datetime('now')
     WHERE id = ?
-  `).run(scheduled_for, req.params.id);
+  `).run(when.toISOString(), req.params.id);
 
   const updated = db.prepare('SELECT * FROM chapters WHERE id = ?').get(req.params.id);
   res.json({ chapter: updated });
@@ -243,8 +260,17 @@ router.delete('/chapters/:id', (req, res) => {
 
   db.exec('BEGIN');
   try {
+    db.prepare('UPDATE users SET favorite_chapter_id = NULL WHERE favorite_chapter_id = ?').run(req.params.id);
     db.prepare('DELETE FROM reading_progress WHERE chapter_id = ?').run(req.params.id);
     db.prepare('DELETE FROM reading_stats WHERE chapter_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM reading_activity WHERE chapter_id = ?').run(req.params.id);
+    const commentIds = db.prepare('SELECT id FROM comments WHERE chapter_id = ?').all(req.params.id).map((r) => r.id);
+    const highlightIds = db.prepare('SELECT id FROM highlights WHERE chapter_id = ?').all(req.params.id).map((r) => r.id);
+    for (const id of commentIds) db.prepare("DELETE FROM likes WHERE target_type = 'comment' AND target_id = ?").run(id);
+    for (const id of highlightIds) {
+      db.prepare("DELETE FROM likes WHERE target_type = 'highlight' AND target_id = ?").run(id);
+      db.prepare("DELETE FROM favorites WHERE target_type = 'highlight' AND target_id = ?").run(id);
+    }
     db.prepare('DELETE FROM comments WHERE chapter_id = ?').run(req.params.id);
     db.prepare('DELETE FROM highlights WHERE chapter_id = ?').run(req.params.id);
     db.prepare('DELETE FROM bookmarks WHERE chapter_id = ?').run(req.params.id);
@@ -271,6 +297,9 @@ router.delete('/chapters/:id', (req, res) => {
 
 router.post('/chapters/:id/reorder', (req, res) => {
   const { direction } = req.body;
+  if (!['up', 'down'].includes(direction)) {
+    return res.status(400).json({ error: 'Direcao invalida.' });
+  }
   const chapter = db.prepare('SELECT * FROM chapters WHERE id = ?').get(req.params.id);
   if (!chapter) return res.status(404).json({ error: 'Capitulo nao encontrado.' });
 

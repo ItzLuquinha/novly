@@ -1,6 +1,8 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
+const { dateKey, shiftDateKey, consecutiveStreak } = require('../timezone');
+const { boundedInt } = require('../security');
 
 const router = express.Router();
 
@@ -19,43 +21,23 @@ router.get('/dashboard', (req, res) => {
     FROM chapters
   `).get();
 
-  const wordsToday = db.prepare(`
-    SELECT COALESCE(SUM(words_written), 0) as total FROM writing_sessions
-    WHERE user_id = ? AND date(started_at) = date('now') AND words_written > 0
-  `).get(userId).total;
-
-  const wordsThisWeek = db.prepare(`
-    SELECT COALESCE(SUM(words_written), 0) as total FROM writing_sessions
-    WHERE user_id = ? AND started_at >= date('now', '-7 days') AND words_written > 0
-  `).get(userId).total;
-
-  const wordsThisMonth = db.prepare(`
-    SELECT COALESCE(SUM(words_written), 0) as total FROM writing_sessions
-    WHERE user_id = ? AND started_at >= date('now', 'start of month') AND words_written > 0
-  `).get(userId).total;
-
-  const writingDays = db.prepare(`
-    SELECT DISTINCT date(started_at) as d FROM writing_sessions
+  const sessions = db.prepare(`
+    SELECT words_written, started_at FROM writing_sessions
     WHERE user_id = ? AND words_written > 0
-    ORDER BY d DESC
   `).all(userId);
-
-  let streak = 0;
-  if (writingDays.length) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    let cursor = today;
-    for (const row of writingDays) {
-      const d = new Date(row.d + 'T00:00:00Z');
-      const diffDays = Math.round((cursor - d) / (1000 * 60 * 60 * 24));
-      if (diffDays === 0 || diffDays === 1) {
-        streak += 1;
-        cursor = d;
-      } else {
-        break;
-      }
-    }
+  const todayKey = dateKey();
+  const weekStart = shiftDateKey(todayKey, -6);
+  const monthPrefix = todayKey.slice(0, 7);
+  let wordsToday = 0, wordsThisWeek = 0, wordsThisMonth = 0;
+  const writingDayKeys = new Set();
+  for (const session of sessions) {
+    const key = dateKey(session.started_at);
+    writingDayKeys.add(key);
+    if (key === todayKey) wordsToday += session.words_written || 0;
+    if (key >= weekStart && key <= todayKey) wordsThisWeek += session.words_written || 0;
+    if (key.startsWith(monthPrefix)) wordsThisMonth += session.words_written || 0;
   }
+  const streak = consecutiveStreak(writingDayKeys, todayKey);
 
   const lastSession = db.prepare(`
     SELECT ws.*, c.title as chapter_title, b.title as book_title
@@ -97,21 +79,23 @@ router.get('/dashboard', (req, res) => {
 
 router.get('/dashboard/history', (req, res) => {
   const userId = req.user.id;
-  const days = Math.min(Number(req.query.days) || 180, 366);
-
-  const rows = db.prepare(`
-    SELECT date(started_at) as day, SUM(words_written) as words
-    FROM writing_sessions
-    WHERE user_id = ? AND words_written > 0 AND started_at >= date('now', ?)
-    GROUP BY date(started_at)
-    ORDER BY day ASC
-  `).all(userId, `-${days} days`);
-
-  res.json({ days: rows });
+  const days = boundedInt(req.query.days, 1, 366, 180);
+  const todayKey = dateKey();
+  const startKey = shiftDateKey(todayKey, -(days - 1));
+  const rows = db.prepare('SELECT words_written, started_at FROM writing_sessions WHERE user_id = ? AND words_written > 0').all(userId);
+  const grouped = new Map();
+  for (const row of rows) {
+    const key = dateKey(row.started_at);
+    if (key < startKey || key > todayKey) continue;
+    grouped.set(key, (grouped.get(key) || 0) + (row.words_written || 0));
+  }
+  const result = [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, words]) => ({ day, words }));
+  res.json({ days: result });
 });
 
 router.patch('/dashboard/goals', (req, res) => {
-  const { daily_goal, weekly_goal } = req.body;
+  const daily_goal = req.body.daily_goal === undefined ? undefined : boundedInt(req.body.daily_goal, 1, 100000, 500);
+  const weekly_goal = req.body.weekly_goal === undefined ? undefined : boundedInt(req.body.weekly_goal, 1, 500000, 3000);
   const existing = db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
 
   if (existing) {
@@ -153,7 +137,7 @@ router.patch('/editor-preferences', (req, res) => {
   }
 
   const nextFont = editor_font ?? existing?.editor_font ?? 'reading';
-  const nextSize = editor_font_size ?? existing?.editor_font_size ?? 19;
+  const nextSize = boundedInt(editor_font_size ?? existing?.editor_font_size ?? 19, 12, 40, 19);
   const nextColor = editor_text_color ?? existing?.editor_text_color ?? '#e8dcc8';
   const nextSpellcheck = spellcheck_mode ?? existing?.spellcheck_mode ?? 'local';
 

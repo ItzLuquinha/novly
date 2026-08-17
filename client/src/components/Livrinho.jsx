@@ -93,6 +93,14 @@ export default function Livrinho() {
       return;
     }
 
+    if (localStorage.getItem('novly_gemini_consent') !== '1') {
+      const accepted = window.confirm(
+        'O Livrinho usa o Google Gemini. O prompt e, quando aplicavel, trechos do capitulo serao enviados ao Google para gerar a resposta. Deseja continuar?'
+      );
+      if (!accepted) return;
+      localStorage.setItem('novly_gemini_consent', '1');
+    }
+
     setOpen(true);
     setMessages((m) => [...m, { role: 'user', text: label || promptText }]);
     setBusy(true);

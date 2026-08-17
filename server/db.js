@@ -1,4 +1,4 @@
-const { DatabaseSync } = require('node:sqlite');
+const { DatabaseSync, backup } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
@@ -24,13 +24,30 @@ try {
 
 console.log(`[novly] Banco de dados: ${DB_PATH}`);
 
-function backupDatabase() {
+async function backupDatabase(destinationPath = null) {
+  const backupDir = path.join(DATA_DIR, 'backups');
+  if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = destinationPath || path.join(backupDir, `novly-${stamp}.db`);
   try {
-    const backupPath = path.join(DATA_DIR, 'novly.backup.db');
-    fs.copyFileSync(DB_PATH, backupPath);
+    if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
+    await backup(db, backupPath);
+
+    // Keep a small local rotation so one bad/corrupt snapshot does not replace the only backup.
+    const backups = fs.readdirSync(backupDir)
+      .filter((name) => name.endsWith('.db'))
+      .map((name) => ({ name, path: path.join(backupDir, name), mtime: fs.statSync(path.join(backupDir, name)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    for (const old of backups.slice(10)) {
+      try { fs.unlinkSync(old.path); } catch (_) {}
+    }
+
     console.log(`[novly] Backup local: ${backupPath}`);
+    return backupPath;
   } catch (err) {
     console.error('[novly] Falha no backup local:', err.message);
+    throw err;
   }
 }
 
@@ -50,7 +67,8 @@ CREATE TABLE IF NOT EXISTS users (
   favorite_chapter_id INTEGER,
   last_active_at TEXT,
   background_type TEXT DEFAULT 'default',
-  background_value TEXT DEFAULT ''
+  background_value TEXT DEFAULT '',
+  session_version INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS books (
@@ -83,7 +101,8 @@ CREATE TABLE IF NOT EXISTS chapters (
   word_count INTEGER DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  published_at TEXT
+  published_at TEXT,
+  revision INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS reading_progress (
@@ -93,6 +112,7 @@ CREATE TABLE IF NOT EXISTS reading_progress (
   chapter_id INTEGER NOT NULL REFERENCES chapters(id),
   scroll_position REAL DEFAULT 0,
   char_offset INTEGER DEFAULT 0,
+  progress_percent REAL DEFAULT 0,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(user_id, book_id)
 );
@@ -104,6 +124,14 @@ CREATE TABLE IF NOT EXISTS reading_stats (
   completed_at TEXT NOT NULL DEFAULT (datetime('now')),
   seconds_spent INTEGER DEFAULT 0,
   UNIQUE(user_id, chapter_id)
+);
+
+CREATE TABLE IF NOT EXISTS reading_activity (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  chapter_id INTEGER NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+  accumulated_seconds INTEGER NOT NULL DEFAULT 0,
+  last_ping_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, chapter_id)
 );
 
 CREATE TABLE IF NOT EXISTS comments (
@@ -314,6 +342,14 @@ CREATE TABLE IF NOT EXISTS special_notes (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS note_discoveries (
+  note_id INTEGER NOT NULL REFERENCES special_notes(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  discovery_year INTEGER NOT NULL,
+  found_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (note_id, user_id, discovery_year)
+);
+
 CREATE TABLE IF NOT EXISTS kanban_cards (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
@@ -346,6 +382,7 @@ function ensureColumn(table, column, definition) {
 
 ensureColumn('users', 'background_type', "TEXT DEFAULT 'default'");
 ensureColumn('users', 'background_value', "TEXT DEFAULT ''");
+ensureColumn('users', 'session_version', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('writer_settings', 'editor_font', "TEXT DEFAULT 'reading'");
 ensureColumn('writer_settings', 'editor_font_size', 'INTEGER DEFAULT 19');
 ensureColumn('writer_settings', 'editor_text_color', "TEXT DEFAULT '#e8dcc8'");
@@ -362,10 +399,10 @@ ensureColumn('characters', 'outfit_style', "TEXT DEFAULT 'casual'");
 ensureColumn('characters', 'photo_url', "TEXT DEFAULT ''");
 ensureColumn('books', 'cover_url', "TEXT DEFAULT ''");
 ensureColumn('books', 'reader_guide', "TEXT DEFAULT ''");
+ensureColumn('chapters', 'revision', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('reading_progress', 'progress_percent', 'REAL DEFAULT 0');
 
-try {
-  backupDatabase();
-} catch (_) {}
+backupDatabase().catch(() => {});
 
 db.DATA_DIR = DATA_DIR;
 db.DB_PATH = DB_PATH;
