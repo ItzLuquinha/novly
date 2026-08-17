@@ -1,6 +1,6 @@
 const db = require('./db');
 
-function publishDueChapters() {
+async function publishDueChapters() {
   return db.prepare(`
     UPDATE chapters
     SET status = 'publicado',
@@ -13,15 +13,7 @@ function publishDueChapters() {
   `).run();
 }
 
-function startPublishingScheduler() {
-  publishDueChapters();
-  const configured = Number(process.env.PUBLISH_INTERVAL_MS);
-  const intervalMs = Number.isFinite(configured) ? Math.max(1000, Math.floor(configured)) : 30 * 1000;
-  const timer = setInterval(() => {
-    try { publishDueChapters(); } catch (err) { console.error('[novly] Falha ao publicar agendados:', err.message); }
-  }, intervalMs);
-  timer.unref?.();
-  return timer;
-}
-
+// Workers do not run permanent timers. Cloudflare Cron calls publishDueChapters
+// through worker/index.mjs instead.
+function startPublishingScheduler() { return null; }
 module.exports = { publishDueChapters, startPublishingScheduler };

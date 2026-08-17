@@ -1,0 +1,6 @@
+JWT_SECRET="replace-with-at-least-32-random-characters"
+PASSWORD_PEPPER=outro-segredo-local-diferente-com-mais-de-32-caracteres
+SEED_WRITER_EMAIL="writer@example.com"
+SEED_WRITER_PASSWORD="replace-with-a-strong-12-plus-character-password"
+SEED_READER_EMAIL="reader@example.com"
+SEED_READER_PASSWORD="replace-with-a-strong-12-plus-character-password"

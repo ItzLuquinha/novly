@@ -120,31 +120,6 @@ export default function Settings() {
     }
   }
 
-  async function handleVideoSelect(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const okType = file.type === 'video/mp4' || file.type === 'video/webm' || /\.(mp4|webm)$/i.test(file.name);
-    if (!okType) {
-      setBgMsg({ type: 'error', text: 'Use um arquivo MP4 ou WebM.' });
-      e.target.value = '';
-      return;
-    }
-    if (file.size > 40 * 1024 * 1024) {
-      setBgMsg({ type: 'error', text: 'Video muito grande. Maximo: 40MB.' });
-      e.target.value = '';
-      return;
-    }
-    setBgMsg(null);
-    setBgBusy(true);
-    try {
-      const res = await api.uploadBackgroundVideo(file);
-      await applyBackground('video', res.url);
-    } catch (err) {
-      setBgMsg({ type: 'error', text: err.message });
-      setBgBusy(false);
-    }
-    e.target.value = '';
-  }
 
   async function handleVideoUrlSubmit(e) {
     e.preventDefault();
@@ -250,7 +225,7 @@ export default function Settings() {
       <div className="settings-section" style={{ border: 'none', paddingBottom: 0 }}>
         <h2 className="settings-section-heading">Fundo</h2>
         <p className="settings-section-subtitle">
-          Escolha um tema pronto, envie uma foto, um wallpaper ao vivo (MP4), ou use um link.
+          Escolha um tema pronto, envie uma foto, ou use um link. Wallpapers vivos continuam disponiveis por URL MP4/WebM.
         </p>
 
         <div className="settings-bg-tabs">
@@ -315,7 +290,7 @@ export default function Settings() {
             <p className="settings-size-hint">
               Funciona melhor com fotos horizontais (formato paisagem), pelo menos 1600x900px.
               A imagem preenche toda a tela e e cortada para se encaixar, entao evite deixar
-              o assunto principal muito perto das bordas. Tamanho maximo: 8MB.
+              o assunto principal muito perto das bordas. A imagem e comprimida automaticamente antes do envio para economizar espaco.
             </p>
           </>
         )}
@@ -338,6 +313,28 @@ export default function Settings() {
               Funciona melhor com fotos horizontais (formato paisagem), pelo menos 1600x900px.
               A imagem preenche toda a tela e e cortada para se encaixar, entao evite links
               onde o assunto principal fica muito perto das bordas.
+            </p>
+          </>
+        )}
+
+
+        {bgTab === 'live' && (
+          <>
+            <form className="settings-url-row" onSubmit={handleVideoUrlSubmit}>
+              <input
+                type="url"
+                placeholder="https://.../wallpaper.mp4"
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                required
+              />
+              <button className="settings-submit-btn" type="submit" disabled={bgBusy}>
+                {bgBusy ? 'Salvando...' : 'Usar video por link'}
+              </button>
+            </form>
+            <p className="settings-size-hint">
+              Para manter o Novly 100% no plano gratuito sem R2, videos nao sao enviados ao servidor.
+              Use um link HTTPS direto para um arquivo .mp4 ou .webm.
             </p>
           </>
         )}
@@ -367,8 +364,8 @@ export default function Settings() {
         <div className="settings-section">
           <h2 className="settings-section-heading">Backup dos livros</h2>
           <p className="settings-section-subtitle">
-            Se o servidor for redeployado sem disco persistente, o banco some.
-            Baixe um backup periodicamente e configure DATA_DIR no Render.
+            O banco agora fica no Cloudflare D1, com Time Travel automatico.
+            O botao abaixo baixa uma copia logica JSON; para um snapshot SQL completo use o comando de exportacao do guia.
           </p>
           {backupInfo && (
             <p className="settings-size-hint">
@@ -382,7 +379,7 @@ export default function Settings() {
             onClick={handleDownloadBackup}
             disabled={backupBusy}
           >
-            {backupBusy ? 'Preparando...' : 'Baixar backup do banco'}
+            {backupBusy ? 'Preparando...' : 'Baixar backup JSON'}
           </button>
           {backupMsg && <p className={`settings-message ${backupMsg.type}`}>{backupMsg.text}</p>}
         </div>

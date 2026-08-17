@@ -1,8 +1,7 @@
-const API_ORIGIN = import.meta.env.DEV
-  ? (import.meta.env.VITE_API_URL || 'http://localhost:4001')
-  : (import.meta.env.VITE_API_URL || window.location.origin);
+import { prepareImageUpload } from './imageUpload';
+const API_ORIGIN = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '');
 
-const BASE = `${API_ORIGIN.replace(/\/$/, '')}/api`;
+const BASE = `${API_ORIGIN}/api`;
 
 export function mediaUrl(path) {
   if (!path) return '';
@@ -239,8 +238,9 @@ export const api = {
 
 
   uploadBackgroundImage: async (file) => {
+    const prepared = await prepareImageUpload(file);
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('image', prepared);
     const res = await fetch(`${BASE}/uploads/background-image`, {
       method: 'POST',
       credentials: 'include',
@@ -252,23 +252,11 @@ export const api = {
     return data;
   },
 
-  uploadBackgroundVideo: async (file) => {
-    const formData = new FormData();
-    formData.append('video', file);
-    const res = await fetch(`${BASE}/uploads/background-video`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: authHeaders(),
-      body: formData,
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || 'Falha ao enviar o video.');
-    return data;
-  },
 
   uploadCharacterPhoto: async (file) => {
+    const prepared = await prepareImageUpload(file);
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('image', prepared);
     const res = await fetch(`${BASE}/uploads/character-photo`, {
       method: 'POST',
       credentials: 'include',
@@ -291,7 +279,7 @@ export const api = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `novly-backup-${new Date().toISOString().slice(0, 10)}.db`;
+    a.download = `novly-content-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -299,8 +287,9 @@ export const api = {
   },
 
   uploadBookCover: async (file) => {
+    const prepared = await prepareImageUpload(file);
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('image', prepared);
     const res = await fetch(`${BASE}/uploads/book-cover`, {
       method: 'POST',
       credentials: 'include',

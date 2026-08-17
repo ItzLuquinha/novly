@@ -6,31 +6,31 @@ const router = express.Router();
 
 router.use(requireAuth, requireRole('escritor'));
 
-function validateObjectBook(objectId, bookId) {
-  const entity = db.prepare('SELECT id FROM objects WHERE id = ?').get(objectId);
+async function validateObjectBook(objectId, bookId) {
+  const entity = await db.prepare('SELECT id FROM objects WHERE id = ?').get(objectId);
   if (!entity) return { error: [404, 'Objeto nao encontrado.'] };
-  const book = db.prepare('SELECT id FROM books WHERE id = ?').get(bookId);
+  const book = await db.prepare('SELECT id FROM books WHERE id = ?').get(bookId);
   if (!book) return { error: [404, 'Livro nao encontrado.'] };
   return { entity, book };
 }
 
-function validateObjectChapter(objectId, chapterId) {
-  const entity = db.prepare('SELECT id FROM objects WHERE id = ?').get(objectId);
+async function validateObjectChapter(objectId, chapterId) {
+  const entity = await db.prepare('SELECT id FROM objects WHERE id = ?').get(objectId);
   if (!entity) return { error: [404, 'Objeto nao encontrado.'] };
-  const chapter = db.prepare('SELECT id, book_id FROM chapters WHERE id = ?').get(chapterId);
+  const chapter = await db.prepare('SELECT id, book_id FROM chapters WHERE id = ?').get(chapterId);
   if (!chapter) return { error: [404, 'Capitulo nao encontrado.'] };
-  const linkedToBook = db.prepare('SELECT 1 FROM object_books WHERE object_id = ? AND book_id = ?').get(objectId, chapter.book_id);
+  const linkedToBook = await db.prepare('SELECT 1 FROM object_books WHERE object_id = ? AND book_id = ?').get(objectId, chapter.book_id);
   if (!linkedToBook) return { error: [400, 'Associe o objeto ao livro do capitulo antes de vincular o capitulo.'] };
   return { entity, chapter };
 }
 
-function withAssociations(object) {
-  const books = db.prepare(`
+async function withAssociations(object) {
+  const books = await db.prepare(`
     SELECT b.id, b.title, b.slug FROM object_books ob
     JOIN books b ON b.id = ob.book_id WHERE ob.object_id = ?
   `).all(object.id);
 
-  const chapters = db.prepare(`
+  const chapters = await db.prepare(`
     SELECT c.id, c.title, c.book_id FROM object_chapters oc
     JOIN chapters c ON c.id = oc.chapter_id WHERE oc.object_id = ?
   `).all(object.id);
@@ -38,35 +38,35 @@ function withAssociations(object) {
   return { ...object, books, chapters };
 }
 
-router.get('/objects', (req, res) => {
-  const objects = db.prepare('SELECT * FROM objects ORDER BY name ASC').all();
+router.get('/objects', async (req, res) => {
+  const objects = await db.prepare('SELECT * FROM objects ORDER BY name ASC').all();
   res.json({ objects: objects.map(withAssociations) });
 });
 
-router.get('/objects/:id', (req, res) => {
-  const object = db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
+router.get('/objects/:id', async (req, res) => {
+  const object = await db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
   if (!object) return res.status(404).json({ error: 'Objeto nao encontrado.' });
-  res.json({ object: withAssociations(object) });
+  res.json({ object: await withAssociations(object) });
 });
 
-router.post('/objects', (req, res) => {
+router.post('/objects', async (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'O objeto precisa de um nome.' });
   }
 
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO objects (name, created_at, updated_at) VALUES (?, datetime('now'), datetime('now'))
   `).run(name.trim());
 
-  const object = db.prepare('SELECT * FROM objects WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json({ object: withAssociations(object) });
+  const object = await db.prepare('SELECT * FROM objects WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json({ object: await withAssociations(object) });
 });
 
 const editableFields = ['name', 'category', 'description', 'significance', 'notes', 'photo_color'];
 
-router.patch('/objects/:id', (req, res) => {
-  const object = db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
+router.patch('/objects/:id', async (req, res) => {
+  const object = await db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
   if (!object) return res.status(404).json({ error: 'Objeto nao encontrado.' });
 
   const fields = [];
@@ -81,57 +81,51 @@ router.patch('/objects/:id', (req, res) => {
 
   fields.push("updated_at = datetime('now')");
   values.push(req.params.id);
-  db.prepare(`UPDATE objects SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  await db.prepare(`UPDATE objects SET ${fields.join(', ')} WHERE id = ?`).run(...values);
 
-  const updated = db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
-  res.json({ object: withAssociations(updated) });
+  const updated = await db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
+  res.json({ object: await withAssociations(updated) });
 });
 
-router.delete('/objects/:id', (req, res) => {
-  const object = db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
+router.delete('/objects/:id', async (req, res) => {
+  const object = await db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
   if (!object) return res.status(404).json({ error: 'Objeto nao encontrado.' });
-  db.prepare('DELETE FROM objects WHERE id = ?').run(req.params.id);
+  await db.prepare('DELETE FROM objects WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });
 
-router.post('/objects/:id/books/:bookId', (req, res) => {
-  const check = validateObjectBook(req.params.id, req.params.bookId);
+router.post('/objects/:id/books/:bookId', async (req, res) => {
+  const check = await validateObjectBook(req.params.id, req.params.bookId);
   if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
-  db.prepare('INSERT OR IGNORE INTO object_books (object_id, book_id) VALUES (?, ?)')
+  await db.prepare('INSERT OR IGNORE INTO object_books (object_id, book_id) VALUES (?, ?)')
     .run(req.params.id, req.params.bookId);
   res.json({ ok: true });
 });
 
-router.delete('/objects/:id/books/:bookId', (req, res) => {
-  const check = validateObjectBook(req.params.id, req.params.bookId);
+router.delete('/objects/:id/books/:bookId', async (req, res) => {
+  const check = await validateObjectBook(req.params.id, req.params.bookId);
   if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
-  db.exec('BEGIN IMMEDIATE');
-  try {
-    // Removing an entity from a book also removes chapter links from that same book.
+  await db.batch([
     db.prepare(`DELETE FROM object_chapters WHERE object_id = ? AND chapter_id IN (SELECT id FROM chapters WHERE book_id = ?)`)
-      .run(req.params.id, req.params.bookId);
+      .bind(req.params.id, req.params.bookId),
     db.prepare('DELETE FROM object_books WHERE object_id = ? AND book_id = ?')
-      .run(req.params.id, req.params.bookId);
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
+      .bind(req.params.id, req.params.bookId),
+  ]);
   res.json({ ok: true });
 });
 
-router.post('/objects/:id/chapters/:chapterId', (req, res) => {
-  const check = validateObjectChapter(req.params.id, req.params.chapterId);
+router.post('/objects/:id/chapters/:chapterId', async (req, res) => {
+  const check = await validateObjectChapter(req.params.id, req.params.chapterId);
   if (check.error) return res.status(check.error[0]).json({ error: check.error[1] });
-  db.prepare('INSERT OR IGNORE INTO object_chapters (object_id, chapter_id) VALUES (?, ?)')
+  await db.prepare('INSERT OR IGNORE INTO object_chapters (object_id, chapter_id) VALUES (?, ?)')
     .run(req.params.id, req.params.chapterId);
   res.json({ ok: true });
 });
 
-router.delete('/objects/:id/chapters/:chapterId', (req, res) => {
-  const entity = db.prepare('SELECT id FROM objects WHERE id = ?').get(req.params.id);
+router.delete('/objects/:id/chapters/:chapterId', async (req, res) => {
+  const entity = await db.prepare('SELECT id FROM objects WHERE id = ?').get(req.params.id);
   if (!entity) return res.status(404).json({ error: 'Objeto nao encontrado.' });
-  db.prepare('DELETE FROM object_chapters WHERE object_id = ? AND chapter_id = ?')
+  await db.prepare('DELETE FROM object_chapters WHERE object_id = ? AND chapter_id = ?')
     .run(req.params.id, req.params.chapterId);
   res.json({ ok: true });
 });

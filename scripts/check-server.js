@@ -5,12 +5,13 @@ const path = require('node:path');
 function files(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const p = path.join(dir, entry.name);
-    return entry.isDirectory() ? files(p) : (p.endsWith('.js') ? [p] : []);
+    return entry.isDirectory() ? files(p) : (/\.(?:js|mjs)$/.test(p) ? [p] : []);
   });
 }
 
 let failed = false;
-for (const file of files(path.join(process.cwd(), 'server'))) {
+const targets = [...files(path.join(process.cwd(), 'server')), ...files(path.join(process.cwd(), 'worker'))];
+for (const file of targets) {
   const result = spawnSync(process.execPath, ['--check', file], { stdio: 'inherit' });
   if (result.status !== 0) failed = true;
 }

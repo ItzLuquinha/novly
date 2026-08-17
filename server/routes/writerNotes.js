@@ -26,12 +26,12 @@ function noteSelect(where = '') {
   `;
 }
 
-router.get('/notes', (req, res) => {
-  const notes = db.prepare(`${noteSelect()} ORDER BY sn.special_date ASC, sn.id ASC`).all();
+router.get('/notes', async (req, res) => {
+  const notes = await db.prepare(`${noteSelect()} ORDER BY sn.special_date ASC, sn.id ASC`).all();
   res.json({ notes });
 });
 
-router.post('/notes', (req, res) => {
+router.post('/notes', async (req, res) => {
   const message = boundedString(req.body?.message, 5000, '').trim();
   const specialDate = String(req.body?.special_date || '');
   if (!message) return res.status(400).json({ error: 'O bilhete precisa de uma mensagem.' });
@@ -40,21 +40,21 @@ router.post('/notes', (req, res) => {
   let chapterId = null;
   if (req.body?.chapter_id) {
     chapterId = positiveInt(req.body.chapter_id);
-    if (!chapterId || !db.prepare('SELECT 1 FROM chapters WHERE id = ?').get(chapterId)) {
+    if (!chapterId || !await db.prepare('SELECT 1 FROM chapters WHERE id = ?').get(chapterId)) {
       return res.status(400).json({ error: 'Capitulo do bilhete invalido.' });
     }
   }
 
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO special_notes (message, special_date, chapter_id, created_at)
     VALUES (?, ?, ?, datetime('now'))
   `).run(message, specialDate, chapterId);
-  const note = db.prepare(`${noteSelect('WHERE sn.id = ?')}`).get(result.lastInsertRowid);
+  const note = await db.prepare(`${noteSelect('WHERE sn.id = ?')}`).get(result.lastInsertRowid);
   res.status(201).json({ note });
 });
 
-router.patch('/notes/:id', (req, res) => {
-  const note = db.prepare('SELECT * FROM special_notes WHERE id = ?').get(req.params.id);
+router.patch('/notes/:id', async (req, res) => {
+  const note = await db.prepare('SELECT * FROM special_notes WHERE id = ?').get(req.params.id);
   if (!note) return res.status(404).json({ error: 'Bilhete nao encontrado.' });
 
   const fields = [];
@@ -70,7 +70,7 @@ router.patch('/notes/:id', (req, res) => {
   }
   if (req.body.chapter_id !== undefined) {
     const chapterId = req.body.chapter_id ? positiveInt(req.body.chapter_id) : null;
-    if (chapterId && !db.prepare('SELECT 1 FROM chapters WHERE id = ?').get(chapterId)) {
+    if (chapterId && !await db.prepare('SELECT 1 FROM chapters WHERE id = ?').get(chapterId)) {
       return res.status(400).json({ error: 'Capitulo do bilhete invalido.' });
     }
     fields.push('chapter_id = ?'); values.push(chapterId);
@@ -78,15 +78,15 @@ router.patch('/notes/:id', (req, res) => {
   if (!fields.length) return res.status(400).json({ error: 'Nada para atualizar.' });
 
   values.push(req.params.id);
-  db.prepare(`UPDATE special_notes SET ${fields.join(', ')} WHERE id = ?`).run(...values);
-  const updated = db.prepare(`${noteSelect('WHERE sn.id = ?')}`).get(req.params.id);
+  await db.prepare(`UPDATE special_notes SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  const updated = await db.prepare(`${noteSelect('WHERE sn.id = ?')}`).get(req.params.id);
   res.json({ note: updated });
 });
 
-router.delete('/notes/:id', (req, res) => {
-  const note = db.prepare('SELECT 1 FROM special_notes WHERE id = ?').get(req.params.id);
+router.delete('/notes/:id', async (req, res) => {
+  const note = await db.prepare('SELECT 1 FROM special_notes WHERE id = ?').get(req.params.id);
   if (!note) return res.status(404).json({ error: 'Bilhete nao encontrado.' });
-  db.prepare('DELETE FROM special_notes WHERE id = ?').run(req.params.id);
+  await db.prepare('DELETE FROM special_notes WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });
 

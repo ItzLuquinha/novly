@@ -8,12 +8,12 @@ const router = express.Router();
 
 router.use(requireAuth, requireRole('escritor'));
 
-router.get('/dashboard', (req, res) => {
+router.get('/dashboard', async (req, res) => {
   const userId = req.user.id;
 
-  const bookCount = db.prepare('SELECT COUNT(*) as c FROM books').get().c;
+  const bookCount = (await db.prepare('SELECT COUNT(*) as c FROM books').get()).c;
 
-  const chapterStats = db.prepare(`
+  const chapterStats = await db.prepare(`
     SELECT
       SUM(CASE WHEN status = 'publicado' THEN 1 ELSE 0 END) as published,
       SUM(CASE WHEN status = 'rascunho' THEN 1 ELSE 0 END) as draft,
@@ -21,7 +21,7 @@ router.get('/dashboard', (req, res) => {
     FROM chapters
   `).get();
 
-  const sessions = db.prepare(`
+  const sessions = await db.prepare(`
     SELECT words_written, started_at FROM writing_sessions
     WHERE user_id = ? AND words_written > 0
   `).all(userId);
@@ -39,7 +39,7 @@ router.get('/dashboard', (req, res) => {
   }
   const streak = consecutiveStreak(writingDayKeys, todayKey);
 
-  const lastSession = db.prepare(`
+  const lastSession = await db.prepare(`
     SELECT ws.*, c.title as chapter_title, b.title as book_title
     FROM writing_sessions ws
     LEFT JOIN chapters c ON c.id = ws.chapter_id
@@ -48,16 +48,16 @@ router.get('/dashboard', (req, res) => {
     ORDER BY ws.started_at DESC LIMIT 1
   `).get(userId);
 
-  const nextScheduled = db.prepare(`
+  const nextScheduled = await db.prepare(`
     SELECT ch.*, b.title as book_title, b.slug as book_slug
     FROM chapters ch JOIN books b ON b.id = ch.book_id
     WHERE ch.status = 'agendado' AND ch.scheduled_for IS NOT NULL
     ORDER BY ch.scheduled_for ASC LIMIT 1
   `).get();
 
-  let settings = db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(userId);
+  let settings = await db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(userId);
   if (!settings) {
-    db.prepare('INSERT INTO writer_settings (user_id, daily_goal, weekly_goal) VALUES (?, 500, 3000)').run(userId);
+    await db.prepare('INSERT INTO writer_settings (user_id, daily_goal, weekly_goal) VALUES (?, 500, 3000)').run(userId);
     settings = { user_id: userId, daily_goal: 500, weekly_goal: 3000 };
   }
 
@@ -77,12 +77,12 @@ router.get('/dashboard', (req, res) => {
   });
 });
 
-router.get('/dashboard/history', (req, res) => {
+router.get('/dashboard/history', async (req, res) => {
   const userId = req.user.id;
   const days = boundedInt(req.query.days, 1, 366, 180);
   const todayKey = dateKey();
   const startKey = shiftDateKey(todayKey, -(days - 1));
-  const rows = db.prepare('SELECT words_written, started_at FROM writing_sessions WHERE user_id = ? AND words_written > 0').all(userId);
+  const rows = await db.prepare('SELECT words_written, started_at FROM writing_sessions WHERE user_id = ? AND words_written > 0').all(userId);
   const grouped = new Map();
   for (const row of rows) {
     const key = dateKey(row.started_at);
@@ -93,17 +93,17 @@ router.get('/dashboard/history', (req, res) => {
   res.json({ days: result });
 });
 
-router.patch('/dashboard/goals', (req, res) => {
+router.patch('/dashboard/goals', async (req, res) => {
   const daily_goal = req.body.daily_goal === undefined ? undefined : boundedInt(req.body.daily_goal, 1, 100000, 500);
   const weekly_goal = req.body.weekly_goal === undefined ? undefined : boundedInt(req.body.weekly_goal, 1, 500000, 3000);
-  const existing = db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
+  const existing = await db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
 
   if (existing) {
-    db.prepare(`
+    await db.prepare(`
       UPDATE writer_settings SET daily_goal = ?, weekly_goal = ? WHERE user_id = ?
     `).run(daily_goal ?? existing.daily_goal, weekly_goal ?? existing.weekly_goal, req.user.id);
   } else {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO writer_settings (user_id, daily_goal, weekly_goal) VALUES (?, ?, ?)
     `).run(req.user.id, daily_goal ?? 500, weekly_goal ?? 3000);
   }
@@ -111,14 +111,14 @@ router.patch('/dashboard/goals', (req, res) => {
   res.json({ ok: true });
 });
 
-router.get('/editor-preferences', (req, res) => {
-  let settings = db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
+router.get('/editor-preferences', async (req, res) => {
+  let settings = await db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
   if (!settings) {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO writer_settings (user_id, daily_goal, weekly_goal, editor_font, editor_font_size, editor_text_color, spellcheck_mode)
       VALUES (?, 500, 3000, 'reading', 19, '#e8dcc8', 'local')
     `).run(req.user.id);
-    settings = db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
+    settings = await db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
   }
   res.json({
     editor_font: settings.editor_font,
@@ -128,9 +128,9 @@ router.get('/editor-preferences', (req, res) => {
   });
 });
 
-router.patch('/editor-preferences', (req, res) => {
+router.patch('/editor-preferences', async (req, res) => {
   const { editor_font, editor_font_size, editor_text_color, spellcheck_mode } = req.body;
-  const existing = db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
+  const existing = await db.prepare('SELECT * FROM writer_settings WHERE user_id = ?').get(req.user.id);
 
   if (spellcheck_mode !== undefined && !['off', 'local', 'languagetool'].includes(spellcheck_mode)) {
     return res.status(400).json({ error: 'Modo de corretor invalido.' });
@@ -142,11 +142,11 @@ router.patch('/editor-preferences', (req, res) => {
   const nextSpellcheck = spellcheck_mode ?? existing?.spellcheck_mode ?? 'local';
 
   if (existing) {
-    db.prepare(`
+    await db.prepare(`
       UPDATE writer_settings SET editor_font = ?, editor_font_size = ?, editor_text_color = ?, spellcheck_mode = ? WHERE user_id = ?
     `).run(nextFont, nextSize, nextColor, nextSpellcheck, req.user.id);
   } else {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO writer_settings (user_id, editor_font, editor_font_size, editor_text_color, spellcheck_mode)
       VALUES (?, ?, ?, ?, ?)
     `).run(req.user.id, nextFont, nextSize, nextColor, nextSpellcheck);

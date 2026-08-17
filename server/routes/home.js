@@ -6,12 +6,12 @@ const { boundedString } = require('../security');
 
 const router = express.Router();
 
-router.get('/summary', requireAuth, (req, res) => {
-  publishDueChapters();
+router.get('/summary', requireAuth, async (req, res) => {
+  await publishDueChapters();
   const userId = req.user.id;
   const isWriter = req.user.role === 'escritor';
 
-  const inProgress = db.prepare(`
+  const inProgress = await db.prepare(`
     SELECT rp.book_id, rp.chapter_id, rp.scroll_position, rp.char_offset, rp.progress_percent, rp.updated_at,
            b.title as book_title, b.slug as book_slug, b.cover_color, b.spine_color, ch.title as chapter_title
     FROM reading_progress rp
@@ -22,7 +22,7 @@ router.get('/summary', requireAuth, (req, res) => {
     ORDER BY rp.updated_at DESC LIMIT 1
   `).get(userId);
 
-  const lastUpdatedBook = db.prepare(`
+  const lastUpdatedBook = await db.prepare(`
     SELECT b.id, b.title, b.slug, b.synopsis, b.cover_color, b.spine_color, b.cover_url,
            b.category, b.status, b.published_at, MAX(c.updated_at) as last_chapter_update
     FROM books b JOIN chapters c ON c.book_id = b.id
@@ -30,7 +30,7 @@ router.get('/summary', requireAuth, (req, res) => {
     GROUP BY b.id ORDER BY last_chapter_update DESC LIMIT 1
   `).get();
 
-  const lastComment = db.prepare(`
+  const lastComment = await db.prepare(`
     SELECT c.id, c.content, c.created_at, c.chapter_id, c.book_id, c.resolved, c.pinned,
            u.username, u.role as user_role, b.title as book_title, b.slug as book_slug, ch.title as chapter_title
     FROM comments c
@@ -41,7 +41,7 @@ router.get('/summary', requireAuth, (req, res) => {
     ORDER BY c.created_at DESC LIMIT 1
   `).get();
 
-  const recentChapter = db.prepare(`
+  const recentChapter = await db.prepare(`
     SELECT ch.id, ch.title, ch.order_index, ch.word_count, ch.published_at,
            b.title as book_title, b.slug as book_slug
     FROM chapters ch JOIN books b ON b.id = ch.book_id
@@ -49,7 +49,7 @@ router.get('/summary', requireAuth, (req, res) => {
     ORDER BY ch.published_at DESC LIMIT 1
   `).get();
 
-  const nextScheduled = isWriter ? db.prepare(`
+  const nextScheduled = isWriter ? await db.prepare(`
     SELECT ch.id, ch.title, ch.scheduled_for, ch.word_count,
            b.id as book_id, b.title as book_title, b.slug as book_slug
     FROM chapters ch JOIN books b ON b.id = ch.book_id
@@ -57,15 +57,15 @@ router.get('/summary', requireAuth, (req, res) => {
     ORDER BY ch.scheduled_for ASC LIMIT 1
   `).get() : null;
 
-  const favoriteHighlight = db.prepare(`
+  const favoriteHighlight = await db.prepare(`
     SELECT h.id, h.book_id, h.chapter_id, h.text, h.note, h.created_at
     FROM highlights h WHERE h.user_id = ? ORDER BY h.created_at DESC LIMIT 1
   `).get(userId) || null;
 
-  const otherUser = db.prepare('SELECT id, username, role FROM users WHERE id != ? ORDER BY id ASC LIMIT 1').get(userId);
+  const otherUser = await db.prepare('SELECT id, username, role FROM users WHERE id != ? ORDER BY id ASC LIMIT 1').get(userId);
   let otherPresence = null;
   if (otherUser) {
-    const presence = db.prepare('SELECT last_ping_at FROM presence WHERE user_id = ?').get(otherUser.id);
+    const presence = await db.prepare('SELECT last_ping_at FROM presence WHERE user_id = ?').get(otherUser.id);
     if (presence) {
       const lastPing = new Date(`${presence.last_ping_at}Z`).getTime();
       otherPresence = { username: otherUser.username, role: otherUser.role, online: Date.now() - lastPing < 2 * 60 * 1000 };
@@ -83,19 +83,19 @@ router.get('/summary', requireAuth, (req, res) => {
   });
 });
 
-router.post('/presence/ping', requireAuth, (req, res) => {
+router.post('/presence/ping', requireAuth, async (req, res) => {
   const location = boundedString(req.body?.location, 120, '');
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO presence (user_id, last_ping_at, location) VALUES (?, datetime('now'), ?)
     ON CONFLICT(user_id) DO UPDATE SET last_ping_at = datetime('now'), location = excluded.location
   `).run(req.user.id, location);
   res.json({ ok: true });
 });
 
-router.get('/presence', requireAuth, (req, res) => {
-  const otherUser = db.prepare('SELECT id, username, role FROM users WHERE id != ? ORDER BY id ASC LIMIT 1').get(req.user.id);
+router.get('/presence', requireAuth, async (req, res) => {
+  const otherUser = await db.prepare('SELECT id, username, role FROM users WHERE id != ? ORDER BY id ASC LIMIT 1').get(req.user.id);
   if (!otherUser) return res.json({ other_presence: null });
-  const presence = db.prepare('SELECT last_ping_at, location FROM presence WHERE user_id = ?').get(otherUser.id);
+  const presence = await db.prepare('SELECT last_ping_at, location FROM presence WHERE user_id = ?').get(otherUser.id);
   if (!presence) return res.json({ other_presence: null });
   const lastPing = new Date(`${presence.last_ping_at}Z`).getTime();
   res.json({

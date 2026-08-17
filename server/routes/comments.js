@@ -5,11 +5,11 @@ const { getChapterAccessById, positiveInt, boundedInt, boundedString } = require
 
 const router = express.Router();
 
-router.get('/chapter/:chapterId', requireAuth, (req, res) => {
-  const access = getChapterAccessById(req.params.chapterId, req.user);
+router.get('/chapter/:chapterId', requireAuth, async (req, res) => {
+  const access = await getChapterAccessById(req.params.chapterId, req.user);
   if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
-  const comments = db.prepare(`
+  const comments = await db.prepare(`
     SELECT c.*, u.username, u.avatar_url, u.role as user_role
     FROM comments c JOIN users u ON u.id = c.user_id
     WHERE c.chapter_id = ?
@@ -23,8 +23,8 @@ router.get('/chapter/:chapterId', requireAuth, (req, res) => {
   res.json({ comments: withReplies });
 });
 
-router.post('/chapter/:chapterId', requireAuth, (req, res) => {
-  const access = getChapterAccessById(req.params.chapterId, req.user);
+router.post('/chapter/:chapterId', requireAuth, async (req, res) => {
+  const access = await getChapterAccessById(req.params.chapterId, req.user);
   if (access.error) return res.status(access.error.status).json({ error: access.error.message });
   const chapter = access.chapter;
 
@@ -39,7 +39,7 @@ router.post('/chapter/:chapterId', requireAuth, (req, res) => {
   let parentId = null;
   if (req.body?.parent_id) {
     parentId = positiveInt(req.body.parent_id);
-    const parent = parentId ? db.prepare('SELECT id, chapter_id FROM comments WHERE id = ?').get(parentId) : null;
+    const parent = parentId ? await db.prepare('SELECT id, chapter_id FROM comments WHERE id = ?').get(parentId) : null;
     if (!parent || parent.chapter_id !== chapter.id) return res.status(400).json({ error: 'Comentario pai invalido.' });
   }
 
@@ -61,7 +61,7 @@ router.post('/chapter/:chapterId', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Intervalo do comentario invalido.' });
   }
 
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO comments (user_id, book_id, chapter_id, parent_id, anchor_text, anchor_start, anchor_end, content, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `).run(
@@ -75,45 +75,39 @@ router.post('/chapter/:chapterId', requireAuth, (req, res) => {
     content
   );
 
-  const comment = db.prepare(`
+  const comment = await db.prepare(`
     SELECT c.*, u.username, u.avatar_url, u.role as user_role
     FROM comments c JOIN users u ON u.id = c.user_id WHERE c.id = ?
   `).get(result.lastInsertRowid);
   res.status(201).json({ comment });
 });
 
-router.patch('/:id/resolve', requireAuth, requireRole('escritor'), (req, res) => {
-  const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
+router.patch('/:id/resolve', requireAuth, requireRole('escritor'), async (req, res) => {
+  const comment = await db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
   if (!comment) return res.status(404).json({ error: 'Comentario nao encontrado.' });
   const newState = comment.resolved ? 0 : 1;
-  db.prepare('UPDATE comments SET resolved = ? WHERE id = ?').run(newState, req.params.id);
+  await db.prepare('UPDATE comments SET resolved = ? WHERE id = ?').run(newState, req.params.id);
   res.json({ resolved: !!newState });
 });
 
-router.patch('/:id/pin', requireAuth, requireRole('escritor'), (req, res) => {
-  const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
+router.patch('/:id/pin', requireAuth, requireRole('escritor'), async (req, res) => {
+  const comment = await db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
   if (!comment) return res.status(404).json({ error: 'Comentario nao encontrado.' });
   const newState = comment.pinned ? 0 : 1;
-  db.prepare('UPDATE comments SET pinned = ? WHERE id = ?').run(newState, req.params.id);
+  await db.prepare('UPDATE comments SET pinned = ? WHERE id = ?').run(newState, req.params.id);
   res.json({ pinned: !!newState });
 });
 
-router.delete('/:id', requireAuth, (req, res) => {
-  const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
+router.delete('/:id', requireAuth, async (req, res) => {
+  const comment = await db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
   if (!comment) return res.status(404).json({ error: 'Comentario nao encontrado.' });
   if (comment.user_id !== req.user.id && req.user.role !== 'escritor') {
     return res.status(403).json({ error: 'Sem permissao para excluir este comentario.' });
   }
-  const ids = db.prepare('SELECT id FROM comments WHERE id = ? OR parent_id = ?').all(req.params.id, req.params.id).map((r) => r.id);
-  db.exec('BEGIN IMMEDIATE');
-  try {
-    for (const id of ids) db.prepare("DELETE FROM likes WHERE target_type = 'comment' AND target_id = ?").run(id);
-    db.prepare('DELETE FROM comments WHERE id = ? OR parent_id = ?').run(req.params.id, req.params.id);
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
+  await db.batch([
+    db.prepare("DELETE FROM likes WHERE target_type = 'comment' AND target_id IN (SELECT id FROM comments WHERE id = ? OR parent_id = ?)").bind(req.params.id, req.params.id),
+    db.prepare('DELETE FROM comments WHERE id = ? OR parent_id = ?').bind(req.params.id, req.params.id),
+  ]);
   res.json({ ok: true });
 });
 
