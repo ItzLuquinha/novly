@@ -26,6 +26,7 @@ const settingsRoutes = require('./routes/settings');
 const uploadsRoutes = require('./routes/uploads');
 const grammarCheckRoutes = require('./routes/grammarCheck');
 const writerBackupRoutes = require('./routes/writerBackup');
+const loreNetworkRoutes = require('./routes/loreNetwork');
 
 const app = express();
 app.disable('x-powered-by');
@@ -103,6 +104,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/grammar', grammarCheckRoutes);
 app.use('/api/writer', writerBackupRoutes);
+app.use('/api', loreNetworkRoutes);
 app.get('/api/health', (req, res) => res.json({ ok: true, platform: 'cloudflare-workers' }));
 
 app.use((err, req, res, next) => {

@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api, mediaUrl } from '../lib/api';
+import RevealControl from '../components/RevealControl.jsx';
+import StoryConnections from '../components/StoryConnections.jsx';
 import './Lore.css';
 
 const FIELD_GROUPS = [
@@ -30,10 +32,12 @@ export default function WriterCharacterDetail() {
   const [urlValue, setUrlValue] = useState('');
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [meta, setMeta] = useState(null);
   const debounceRef = useRef(null);
 
   function load() {
     api.writerCharacter(id).then((data) => setCharacter(data.character)).catch(() => {});
+    api.loreMeta('character', id).then(setMeta).catch(() => {});
   }
 
   useEffect(() => {
@@ -184,18 +188,18 @@ export default function WriterCharacterDetail() {
 
       <div className="lore-field-grid">
         <div className="lore-field">
-          <label>Apelidos</label>
+          <div className="lore-label-row"><label>Apelidos</label><RevealControl type="character" entityId={id} field="nicknames" meta={meta} onChanged={load} /></div>
           <input value={character.nicknames || ''} onChange={(e) => updateField('nicknames', e.target.value)} />
         </div>
         <div className="lore-field">
-          <label>Idade</label>
+          <div className="lore-label-row"><label>Idade</label><RevealControl type="character" entityId={id} field="age" meta={meta} onChanged={load} /></div>
           <input value={character.age || ''} onChange={(e) => updateField('age', e.target.value)} />
         </div>
       </div>
 
       {LONG_FIELDS.map(([key, label]) => (
         <div className="lore-field" key={key}>
-          <label>{label}</label>
+          <div className="lore-label-row"><label>{label}</label>{key !== 'notes' && <RevealControl type="character" entityId={id} field={key} meta={meta} onChanged={load} />}</div>
           <textarea value={character[key] || ''} onChange={(e) => updateField(key, e.target.value)} />
         </div>
       ))}
@@ -215,6 +219,7 @@ export default function WriterCharacterDetail() {
           </span>
         ))}
       </div>
+      <StoryConnections type="character" entity={character} books={character.books} />
       {availableBooks.length > 0 && (
         <select className="lore-add-tag-select" onChange={handleLinkBook} defaultValue="">
           <option value="" disabled>Adicionar a um livro</option>

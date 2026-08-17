@@ -41,7 +41,7 @@ async function withAssociations(character) {
 
 router.get('/characters', async (req, res) => {
   const characters = await db.prepare('SELECT * FROM characters ORDER BY name ASC').all();
-  res.json({ characters: characters.map(withAssociations) });
+  res.json({ characters: await Promise.all(characters.map(withAssociations)) });
 });
 
 router.get('/characters/:id', async (req, res) => {
@@ -96,7 +96,12 @@ router.patch('/characters/:id', async (req, res) => {
 router.delete('/characters/:id', async (req, res) => {
   const character = await db.prepare('SELECT * FROM characters WHERE id = ?').get(req.params.id);
   if (!character) return res.status(404).json({ error: 'Personagem nao encontrado.' });
-  await db.prepare('DELETE FROM characters WHERE id = ?').run(req.params.id);
+  await db.batch([
+    db.prepare("DELETE FROM lore_field_reveals WHERE entity_type='character' AND entity_id=?").bind(req.params.id),
+    db.prepare("DELETE FROM lore_relationships WHERE (source_type='character' AND source_id=?) OR (target_type='character' AND target_id=?)").bind(req.params.id, req.params.id),
+    db.prepare("DELETE FROM lore_locations WHERE entity_type='character' AND entity_id=?").bind(req.params.id),
+    db.prepare('DELETE FROM characters WHERE id = ?').bind(req.params.id),
+  ]);
   await removeManagedUploadUrl(character.photo_url);
   res.json({ ok: true });
 });

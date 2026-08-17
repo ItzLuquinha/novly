@@ -1,0 +1,2 @@
+import './StoryBible.css';
+export default function LoreReadField({label,value,locked}){if(value===undefined||value===null||value==='')return null;return <div className="book-lore-entry-field"><div className="book-lore-entry-field-label">{label}{locked&&<span className="spoiler-lock">spoiler bloqueado</span>}</div><div className={`book-lore-entry-field-value${locked?' locked-lore':''}`}>{value}</div></div>}

@@ -163,6 +163,15 @@ export const api = {
   bookObjects: (slug) => request(`/books/${slug}/objects`),
   bookTimeline: (slug) => request(`/books/${slug}/timeline`),
 
+  loreMeta: (type, id) => request(`/writer/lore/${type}/${id}/meta`),
+  setLoreReveal: (type, id, field, chapterId) => request(`/writer/lore/${type}/${id}/reveals/${field}`, { method: 'PUT', body: JSON.stringify({ chapter_id: chapterId || null }) }),
+  writerStoryBible: (bookId) => request(`/writer/books/${bookId}/story-bible`),
+  createLoreRelationship: (bookId, payload) => request(`/writer/books/${bookId}/relationships`, { method: 'POST', body: JSON.stringify(payload) }),
+  deleteLoreRelationship: (id) => request(`/writer/relationships/${id}`, { method: 'DELETE' }),
+  setLoreLocation: (bookId, payload) => request(`/writer/books/${bookId}/locations`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteLoreLocation: (bookId, payload) => request(`/writer/books/${bookId}/locations`, { method: 'DELETE', body: JSON.stringify(payload) }),
+  bookStoryBible: (slug) => request(`/books/${slug}/story-bible`),
+
   writerObjects: () => request('/writer/objects'),
   writerObject: (id) => request(`/writer/objects/${id}`),
   createObject: (name) =>

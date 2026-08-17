@@ -1,158 +1,24 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import RevealControl from '../components/RevealControl.jsx';
+import StoryConnections from '../components/StoryConnections.jsx';
 import './Lore.css';
 
-export default function WriterPlaceDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [place, setPlace] = useState(null);
-  const [allBooks, setAllBooks] = useState([]);
-  const [saveState, setSaveState] = useState('idle');
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventDescription, setEventDescription] = useState('');
-  const debounceRef = useRef(null);
-
-  function load() {
-    api.writerPlace(id).then((data) => setPlace(data.place)).catch(() => {});
-  }
-
-  useEffect(() => {
-    load();
-    api.writerBooks().then((data) => setAllBooks(data.books)).catch(() => {});
-  }, [id]);
-
-  const scheduleSave = useCallback((patch) => {
-    setSaveState('salvando');
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        await api.updatePlace(id, patch);
-        setSaveState('salvo');
-      } catch (e) {
-        setSaveState('erro');
-      }
-    }, 700);
-  }, [id]);
-
-  function updateField(field, value) {
-    setPlace((p) => ({ ...p, [field]: value }));
-    scheduleSave({ [field]: value });
-  }
-
-  async function handleDelete() {
-    if (!window.confirm(`Excluir "${place.name}"? Isso nao pode ser desfeito.`)) return;
-    await api.deletePlace(id);
-    navigate('/escritor/lugares');
-  }
-
-  async function handleLinkBook(e) {
-    const bookId = e.target.value;
-    if (!bookId) return;
-    await api.linkPlaceBook(id, bookId);
-    load();
-    e.target.value = '';
-  }
-
-  async function handleUnlinkBook(bookId) {
-    await api.unlinkPlaceBook(id, bookId);
-    load();
-  }
-
-  async function handleAddEvent(e) {
-    e.preventDefault();
-    if (!eventTitle.trim()) return;
-    await api.createPlaceEvent(id, { title: eventTitle.trim(), description: eventDescription.trim() });
-    setEventTitle('');
-    setEventDescription('');
-    load();
-  }
-
-  async function handleDeleteEvent(eventId) {
-    await api.deletePlaceEvent(id, eventId);
-    load();
-  }
-
-  if (!place) return null;
-
-  const linkedBookIds = new Set(place.books.map((b) => b.id));
-  const availableBooks = allBooks.filter((b) => !linkedBookIds.has(b.id));
-
-  return (
-    <div className="lore-page">
-      <Link className="lore-detail-back" to="/escritor/lugares">Voltar aos lugares</Link>
-
-      <div className="lore-detail-header">
-        <div className="lore-detail-avatar" style={{ background: place.photo_color, borderRadius: '4px' }} />
-        <input
-          className="lore-detail-name-input"
-          value={place.name}
-          onChange={(e) => updateField('name', e.target.value)}
-        />
-        <button className="lore-detail-delete" onClick={handleDelete}>Excluir</button>
-      </div>
-
-      <div className="lore-field">
-        <label>Descricao</label>
-        <textarea value={place.description || ''} onChange={(e) => updateField('description', e.target.value)} />
-      </div>
-      <div className="lore-field">
-        <label>Historia do local</label>
-        <textarea value={place.history || ''} onChange={(e) => updateField('history', e.target.value)} />
-      </div>
-      <div className="lore-field">
-        <label>Anotacoes</label>
-        <textarea value={place.notes || ''} onChange={(e) => updateField('notes', e.target.value)} />
-      </div>
-
-      <div className="lore-save-hint">
-        {saveState === 'salvando' && 'Salvando...'}
-        {saveState === 'salvo' && 'Salvo.'}
-        {saveState === 'erro' && 'Erro ao salvar.'}
-      </div>
-
-      <h2 className="lore-section-heading">Aparece em</h2>
-      <div className="lore-tag-list">
-        {place.books.map((b) => (
-          <span className="lore-tag" key={b.id}>
-            {b.title}
-            <button onClick={() => handleUnlinkBook(b.id)}>remover</button>
-          </span>
-        ))}
-      </div>
-      {availableBooks.length > 0 && (
-        <select className="lore-add-tag-select" onChange={handleLinkBook} defaultValue="">
-          <option value="" disabled>Adicionar a um livro</option>
-          {availableBooks.map((b) => (
-            <option key={b.id} value={b.id}>{b.title}</option>
-          ))}
-        </select>
-      )}
-
-      <h2 className="lore-section-heading">Eventos neste lugar</h2>
-      {place.events.map((ev) => (
-        <div className="lore-event-item" key={ev.id}>
-          <div>
-            <div className="lore-event-title">{ev.title}</div>
-            {ev.description && <div className="lore-event-description">{ev.description}</div>}
-          </div>
-          <button className="lore-event-delete" onClick={() => handleDeleteEvent(ev.id)}>Excluir</button>
-        </div>
-      ))}
-
-      <form className="lore-add-event-form" onSubmit={handleAddEvent}>
-        <input
-          placeholder="Titulo do evento"
-          value={eventTitle}
-          onChange={(e) => setEventTitle(e.target.value)}
-        />
-        <textarea
-          placeholder="Descricao (opcional)"
-          value={eventDescription}
-          onChange={(e) => setEventDescription(e.target.value)}
-        />
-        <button type="submit">Adicionar evento</button>
-      </form>
-    </div>
-  );
+const FIELDS=[['description','Descricao','textarea'],['region','Regiao / territorio','input'],['atmosphere','Atmosfera','textarea'],['population','Populacao','textarea'],['dangers','Perigos','textarea'],['rules','Regras do lugar','textarea'],['residents','Quem vive aqui','textarea'],['history','Historia do local','textarea'],['notes','Anotacoes privadas','textarea']];
+export default function WriterPlaceDetail(){
+ const{id}=useParams();const nav=useNavigate();const[place,setPlace]=useState(null);const[books,setBooks]=useState([]);const[allPlaces,setAllPlaces]=useState([]);const[meta,setMeta]=useState(null);const[save,setSave]=useState('idle');const[eventTitle,setEventTitle]=useState('');const[eventDescription,setEventDescription]=useState('');const timer=useRef();
+ function load(){api.writerPlace(id).then(d=>setPlace(d.place)).catch(()=>{});api.loreMeta('place',id).then(setMeta).catch(()=>{})}
+ useEffect(()=>{load();api.writerBooks().then(d=>setBooks(d.books));api.writerPlaces().then(d=>setAllPlaces(d.places||[]))},[id]);
+ const schedule=useCallback(patch=>{setSave('salvando');clearTimeout(timer.current);timer.current=setTimeout(async()=>{try{await api.updatePlace(id,patch);setSave('salvo')}catch{setSave('erro')}},650)},[id]);
+ function update(k,v){setPlace(p=>({...p,[k]:v}));schedule({[k]:v})}
+ async function link(e){if(!e.target.value)return;await api.linkPlaceBook(id,e.target.value);load();e.target.value=''} async function unlink(b){await api.unlinkPlaceBook(id,b);load()}
+ async function del(){if(confirm(`Excluir "${place.name}"?`)){await api.deletePlace(id);nav('/escritor/lugares')}}
+ async function addEvent(e){e.preventDefault();if(!eventTitle.trim())return;await api.createPlaceEvent(id,{title:eventTitle.trim(),description:eventDescription.trim()});setEventTitle('');setEventDescription('');load()} async function deleteEvent(x){await api.deletePlaceEvent(id,x);load()}
+ if(!place)return null;const linked=new Set(place.books.map(b=>b.id)), available=books.filter(b=>!linked.has(b.id));
+ return <div className="lore-page"><Link className="lore-detail-back" to="/escritor/lugares">Voltar aos lugares</Link><div className="lore-detail-header"><div className="lore-detail-avatar" style={{background:place.photo_color,borderRadius:4}}/><input className="lore-detail-name-input" value={place.name} onChange={e=>update('name',e.target.value)}/><button className="lore-detail-delete" onClick={del}>Excluir</button></div>
+ <div className="lore-field"><div className="lore-label-row"><label>Local superior</label><RevealControl type="place" entityId={id} field="parent_place_id" meta={meta} onChanged={load}/></div><select value={place.parent_place_id||''} onChange={e=>update('parent_place_id',e.target.value?Number(e.target.value):null)}><option value="">Nenhum / local principal</option>{allPlaces.filter(p=>Number(p.id)!==Number(id)).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+ {FIELDS.map(([k,l,t])=><div className="lore-field" key={k}><div className="lore-label-row"><label>{l}</label>{k!=='notes'&&<RevealControl type="place" entityId={id} field={k} meta={meta} onChanged={load}/>}</div>{t==='input'?<input value={place[k]||''} onChange={e=>update(k,e.target.value)}/>:<textarea value={place[k]||''} onChange={e=>update(k,e.target.value)}/>}</div>)}
+ <div className="lore-save-hint">{save==='salvando'?'Salvando...':save==='salvo'?'Salvo.':save==='erro'?'Erro ao salvar.':''}</div><h2 className="lore-section-heading">Aparece em</h2><div className="lore-tag-list">{place.books.map(b=><span className="lore-tag" key={b.id}>{b.title}<button onClick={()=>unlink(b.id)}>remover</button></span>)}</div>{available.length>0&&<select className="lore-add-tag-select" defaultValue="" onChange={link}><option value="" disabled>Adicionar a um livro</option>{available.map(b=><option key={b.id} value={b.id}>{b.title}</option>)}</select>}
+ <StoryConnections type="place" entity={place} books={place.books}/><h2 className="lore-section-heading">Eventos neste lugar</h2>{place.events.map(ev=><div className="lore-event-item" key={ev.id}><div><div className="lore-event-title">{ev.title}</div>{ev.description&&<div className="lore-event-description">{ev.description}</div>}</div><button className="lore-event-delete" onClick={()=>deleteEvent(ev.id)}>Excluir</button></div>)}<form className="lore-add-event-form" onSubmit={addEvent}><input placeholder="Titulo do evento" value={eventTitle} onChange={e=>setEventTitle(e.target.value)}/><textarea placeholder="Descricao (opcional)" value={eventDescription} onChange={e=>setEventDescription(e.target.value)}/><button>Adicionar evento</button></form></div>
 }

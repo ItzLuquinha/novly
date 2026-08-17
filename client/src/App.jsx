@@ -24,6 +24,7 @@ import BookTimeline from './pages/BookTimeline.jsx';
 import Settings from './pages/Settings.jsx';
 import Terms from './pages/Terms.jsx';
 import Privacy from './pages/Privacy.jsx';
+import WhereIsIt from './pages/WhereIsIt.jsx';
 import RequireAuth from './components/RequireAuth.jsx';
 import RequireWriter from './components/RequireWriter.jsx';
 import Shell from './components/Shell.jsx';
@@ -45,6 +46,7 @@ export default function App() {
                 <Route path="/biblioteca/:slug/lugares" element={<BookPlaces />} />
                 <Route path="/biblioteca/:slug/objetos" element={<BookObjects />} />
                 <Route path="/biblioteca/:slug/linha-do-tempo" element={<BookTimeline />} />
+                <Route path="/biblioteca/:slug/onde-se-localiza" element={<WhereIsIt />} />
                 <Route path="/biblioteca/:slug/:chapterId" element={<Reader />} />
                 <Route path="/favoritos" element={<Favorites />} />
                 <Route path="/escritor" element={<RequireWriter><WriterDashboard /></RequireWriter>} />
@@ -59,6 +61,7 @@ export default function App() {
                 <Route path="/escritor/objetos" element={<RequireWriter><WriterObjects /></RequireWriter>} />
                 <Route path="/escritor/objetos/:id" element={<RequireWriter><WriterObjectDetail /></RequireWriter>} />
                 <Route path="/escritor/bilhetes" element={<RequireWriter><WriterNotes /></RequireWriter>} />
+                <Route path="/escritor/onde-se-localiza" element={<RequireWriter><WhereIsIt writer /></RequireWriter>} />
                 <Route path="/configuracoes" element={<Settings />} />
                 <Route path="/termos" element={<Terms />} />
                 <Route path="/privacidade" element={<Privacy />} />

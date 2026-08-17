@@ -52,6 +52,7 @@ export default function Shell({ children }) {
     links.push({ to: '/escritor/personagens', label: 'Personagens', tour: 'nav-personagens' });
     links.push({ to: '/escritor/lugares', label: 'Lugares', tour: 'nav-lugares' });
     links.push({ to: '/escritor/objetos', label: 'Objetos', tour: 'nav-objetos' });
+    links.push({ to: '/escritor/onde-se-localiza', label: 'Onde se localiza', tour: 'nav-localiza' });
     links.push({ to: '/escritor/bilhetes', label: 'Bilhetes', tour: 'nav-bilhetes' });
   }
 
@@ -115,18 +116,21 @@ export default function Shell({ children }) {
         </div>
       </nav>
       <div className="shell-main-wrap">
-        {bgVideoUrl && (
-          <video
-            className="shell-bg-video"
-            src={bgVideoUrl}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-          />
-        )}
-        <main className={`shell-main${bgVideoUrl ? ' has-video-bg' : ''}`} style={backgroundStyle}>
+        <div className="shell-background" aria-hidden="true">
+          {bgVideoUrl && (
+            <video
+              className="shell-bg-video"
+              src={bgVideoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+            />
+          )}
+          <div className="shell-bg-surface" style={backgroundStyle} />
+        </div>
+        <main className="shell-main">
           {children}
         </main>
       </div>

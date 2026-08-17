@@ -40,7 +40,6 @@ export function useResolvedBackground(user) {
         backgroundImage: `linear-gradient(rgba(12, 11, 18, 0.75), rgba(12, 11, 18, 0.75)), url(${mediaUrl(user.background_value)})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
       },
       videoUrl: null,
     };

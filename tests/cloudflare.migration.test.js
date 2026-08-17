@@ -13,7 +13,7 @@ test('migrations create the D1/SQLite schema cleanly', () => {
     db.exec(read(`migrations/${file}`));
   }
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map((r) => r.name);
-  for (const name of ['users', 'books', 'chapters', 'comments', 'highlights', 'writer_settings', 'timeline_events', 'uploaded_files']) {
+  for (const name of ['users', 'books', 'chapters', 'comments', 'highlights', 'writer_settings', 'timeline_events', 'uploaded_files', 'lore_field_reveals', 'lore_relationships', 'lore_locations']) {
     assert.ok(tables.includes(name), `missing table ${name}`);
   }
   const upload = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='uploaded_files'").get();
@@ -78,4 +78,42 @@ test('D1 routes do not contain legacy explicit BEGIN/COMMIT transactions', () =>
 
 test('modern D1 backup path does not use alpha-only dump API', () => {
   assert.doesNotMatch(read('server/routes/writerBackup.js'), /\.DB\.dump\(|\.dump\(\)/);
+});
+
+
+test('Story Bible migration adds revealable worldbuilding fields', () => {
+  const db = new DatabaseSync(':memory:');
+  for (const file of fs.readdirSync(path.join(root, 'migrations')).filter((n) => n.endsWith('.sql')).sort()) db.exec(read(`migrations/${file}`));
+  const placeCols = db.prepare('PRAGMA table_info(places)').all().map(r => r.name);
+  const objectCols = db.prepare('PRAGMA table_info(objects)').all().map(r => r.name);
+  for (const col of ['region','parent_place_id','atmosphere','population','dangers','rules','residents']) assert.ok(placeCols.includes(col));
+  for (const col of ['owner_current','previous_owners','current_location','origin','creator','powers','limitations','condition','history']) assert.ok(objectCols.includes(col));
+  db.close();
+});
+
+test('reader lore uses server-side spoiler masking and story graph filters', () => {
+  const lore = read('server/routes/bookLore.js');
+  const system = read('server/loreSystem.js');
+  const network = read('server/routes/loreNetwork.js');
+  assert.match(lore, /maskEntityForReader/);
+  assert.match(system, /reading_stats/);
+  assert.match(system, /out\[field\]\s*=\s*'\?\?\?'/);
+  assert.match(network, /relationshipsForBook\(book\.id,req\.user\)/);
+});
+
+test('wallpapers stay behind navigation and interactive UI', () => {
+  const shellJsx = read('client/src/components/Shell.jsx');
+  const shellCss = read('client/src/components/Shell.css');
+  const bgHook = read('client/src/hooks/useResolvedBackground.js');
+
+  assert.match(shellJsx, /className="shell-background"/);
+  assert.match(shellJsx, /className="shell-bg-surface"/);
+  assert.doesNotMatch(shellJsx, /<main[^>]+style=\{backgroundStyle\}/);
+
+  assert.match(shellCss, /\.shell-nav\s*\{[\s\S]*?z-index:\s*20;/);
+  assert.match(shellCss, /\.shell-main\s*\{[\s\S]*?z-index:\s*2;/);
+  assert.match(shellCss, /\.shell-background\s*\{[\s\S]*?left:\s*var\(--shell-nav-width\);[\s\S]*?pointer-events:\s*none;/);
+  assert.match(shellCss, /\.shell-bg-video\s*\{[\s\S]*?object-fit:\s*cover;/);
+  assert.doesNotMatch(shellCss, /\.shell-bg-video\s*\{[^}]*position:\s*fixed;/);
+  assert.doesNotMatch(bgHook, /backgroundAttachment/);
 });

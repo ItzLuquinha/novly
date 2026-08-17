@@ -87,6 +87,7 @@ export default function Book() {
             <Link to={`/biblioteca/${slug}/lugares`}>Lugares</Link>
             <Link to={`/biblioteca/${slug}/objetos`}>Objetos</Link>
             <Link to={`/biblioteca/${slug}/linha-do-tempo`}>Linha do tempo</Link>
+            <Link to={`/biblioteca/${slug}/onde-se-localiza`}>Onde se localiza</Link>
           </div>
         </div>
       </div>

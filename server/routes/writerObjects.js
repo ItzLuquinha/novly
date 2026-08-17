@@ -40,7 +40,7 @@ async function withAssociations(object) {
 
 router.get('/objects', async (req, res) => {
   const objects = await db.prepare('SELECT * FROM objects ORDER BY name ASC').all();
-  res.json({ objects: objects.map(withAssociations) });
+  res.json({ objects: await Promise.all(objects.map(withAssociations)) });
 });
 
 router.get('/objects/:id', async (req, res) => {
@@ -63,7 +63,7 @@ router.post('/objects', async (req, res) => {
   res.status(201).json({ object: await withAssociations(object) });
 });
 
-const editableFields = ['name', 'category', 'description', 'significance', 'notes', 'photo_color'];
+const editableFields = ['name', 'category', 'description', 'significance', 'notes', 'photo_color', 'owner_current', 'previous_owners', 'current_location', 'origin', 'creator', 'powers', 'limitations', 'condition', 'history'];
 
 router.patch('/objects/:id', async (req, res) => {
   const object = await db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
@@ -90,7 +90,12 @@ router.patch('/objects/:id', async (req, res) => {
 router.delete('/objects/:id', async (req, res) => {
   const object = await db.prepare('SELECT * FROM objects WHERE id = ?').get(req.params.id);
   if (!object) return res.status(404).json({ error: 'Objeto nao encontrado.' });
-  await db.prepare('DELETE FROM objects WHERE id = ?').run(req.params.id);
+  await db.batch([
+    db.prepare("DELETE FROM lore_field_reveals WHERE entity_type='object' AND entity_id=?").bind(req.params.id),
+    db.prepare("DELETE FROM lore_relationships WHERE (source_type='object' AND source_id=?) OR (target_type='object' AND target_id=?)").bind(req.params.id, req.params.id),
+    db.prepare("DELETE FROM lore_locations WHERE entity_type='object' AND entity_id=?").bind(req.params.id),
+    db.prepare('DELETE FROM objects WHERE id = ?').bind(req.params.id),
+  ]);
   res.json({ ok: true });
 });
 

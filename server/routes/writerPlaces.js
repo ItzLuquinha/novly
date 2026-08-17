@@ -39,7 +39,7 @@ async function withAssociations(place) {
 
 router.get('/places', async (req, res) => {
   const places = await db.prepare('SELECT * FROM places ORDER BY name ASC').all();
-  res.json({ places: places.map(withAssociations) });
+  res.json({ places: await Promise.all(places.map(withAssociations)) });
 });
 
 router.get('/places/:id', async (req, res) => {
@@ -62,7 +62,7 @@ router.post('/places', async (req, res) => {
   res.status(201).json({ place: await withAssociations(place) });
 });
 
-const editableFields = ['name', 'description', 'history', 'notes', 'photo_color'];
+const editableFields = ['name', 'description', 'history', 'notes', 'photo_color', 'region', 'parent_place_id', 'atmosphere', 'population', 'dangers', 'rules', 'residents'];
 
 router.patch('/places/:id', async (req, res) => {
   const place = await db.prepare('SELECT * FROM places WHERE id = ?').get(req.params.id);
@@ -89,7 +89,11 @@ router.patch('/places/:id', async (req, res) => {
 router.delete('/places/:id', async (req, res) => {
   const place = await db.prepare('SELECT * FROM places WHERE id = ?').get(req.params.id);
   if (!place) return res.status(404).json({ error: 'Lugar nao encontrado.' });
-  await db.prepare('DELETE FROM places WHERE id = ?').run(req.params.id);
+  await db.batch([
+    db.prepare("DELETE FROM lore_field_reveals WHERE entity_type='place' AND entity_id=?").bind(req.params.id),
+    db.prepare("DELETE FROM lore_relationships WHERE (source_type='place' AND source_id=?) OR (target_type='place' AND target_id=?)").bind(req.params.id, req.params.id),
+    db.prepare('DELETE FROM places WHERE id = ?').bind(req.params.id),
+  ]);
   res.json({ ok: true });
 });
 
