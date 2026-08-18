@@ -117,3 +117,28 @@ test('wallpapers stay behind navigation and interactive UI', () => {
   assert.doesNotMatch(shellCss, /\.shell-bg-video\s*\{[^}]*position:\s*fixed;/);
   assert.doesNotMatch(bgHook, /backgroundAttachment/);
 });
+
+test('Livrinho is canon-aware, conversational, and cannot silently overwrite edited text', () => {
+  const livrinho = read('client/src/components/Livrinho.jsx');
+  const gemini = read('client/src/lib/gemini.js');
+  const editor = read('client/src/pages/Editor.jsx');
+  const route = read('server/routes/writerLivrinho.js');
+  const index = read('server/index.js');
+
+  assert.match(livrinho, /Escrever/);
+  assert.match(livrinho, /Analisar/);
+  assert.match(livrinho, /Canon/);
+  assert.match(livrinho, /Brainstorm/);
+  assert.match(livrinho, /api\.livrinhoContext/);
+  assert.match(livrinho, /novly_livrinho_v2:/);
+  assert.match(livrinho, /novly:livrinho-edit/);
+  assert.match(gemini, /historyToGemini/);
+  assert.match(gemini, /contents:\s*\[\.\.\.historyToGemini\(history\)/);
+  assert.match(editor, /detail\.original/);
+  assert.match(editor, /detail\.anchorBefore/);
+  assert.match(editor, /novly:livrinho-edit-result/);
+  assert.match(route, /requireRole\('escritor'\)/);
+  assert.match(route, /story_bible/);
+  assert.match(route, /current_locations/);
+  assert.match(index, /writerLivrinhoRoutes/);
+});

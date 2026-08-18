@@ -390,8 +390,8 @@ export default function Settings() {
           <h2 className="settings-section-heading">Livrinho (IA)</h2>
           <p className="settings-section-subtitle">
             Cole sua API key do Google Gemini. Ela fica somente nesta sessao do navegador
-            (sessionStorage) e e usada pelo Livrinho para sugerir texto, dialogo e ideias de cena.
-            Ao usar a IA, o prompt e os trechos de contexto selecionados sao enviados ao Google Gemini.
+            (sessionStorage) e e usada pelo Livrinho para escrita assistida, analise editorial e consultas ao canon.
+            Ao usar a IA, a pergunta e o contexto necessario do capitulo/Story Bible podem ser enviados ao Google Gemini.
           </p>
           <form onSubmit={handleGeminiSave}>
             <div className="settings-field">

@@ -38,8 +38,8 @@ export default function Privacy() {
       <p>
         O corretor avancado pode enviar trechos de texto a API publica do
         LanguageTool, conforme a preferencia do usuario. Quando o Livrinho e usado,
-        prompts e os trechos de contexto escolhidos podem ser enviados ao Google Gemini.
-        A chave Gemini fica apenas na sessao atual do navegador. Fontes tipograficas
+        prompts e, conforme o modo escolhido, contexto do capitulo e da Story Bible podem ser enviados ao Google Gemini.
+        A chave Gemini fica apenas na sessao atual do navegador. O historico recente do Livrinho pode ficar salvo localmente neste navegador, separado por capitulo. Fontes tipograficas
         podem ser carregadas de CDNs (ex: Google Fonts).
       </p>
 

@@ -101,6 +101,8 @@ export const api = {
     request(`/writer/books/${bookId}/chapters`, { method: 'POST', body: JSON.stringify(payload) }),
   writerChapter: (chapterId) => request(`/writer/chapters/${chapterId}`),
   chapterLore: (chapterId) => request(`/writer/chapters/${chapterId}/lore`),
+  livrinhoContext: (chapterId) => request(`/writer/livrinho/context/${chapterId}`),
+  livrinhoSearch: (chapterId, query) => request(`/writer/livrinho/search/${chapterId}?q=${encodeURIComponent(query)}`),
   saveChapter: (chapterId, payload) =>
     request(`/writer/chapters/${chapterId}`, { method: 'PUT', body: JSON.stringify(payload) }),
   createSnapshot: (chapterId, label) =>

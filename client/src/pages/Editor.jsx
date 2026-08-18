@@ -221,6 +221,44 @@ export default function Editor() {
   }
 
   useEffect(() => {
+    function applyLivrinhoEdit(event) {
+      const detail = event.detail || {};
+      if (Number(detail.chapterId) !== Number(chapterId)) return;
+      const start = Math.max(0, Number(detail.start || 0));
+      const end = Math.max(start, Number(detail.end || start));
+      const current = content;
+      if (detail.mode === 'replace' && String(detail.original || '') !== current.slice(start, end)) {
+        window.dispatchEvent(new CustomEvent('novly:livrinho-edit-result', { detail: { ok: false, error: 'O trecho mudou desde a sugestao. Selecione-o novamente antes de aplicar.' } }));
+        return;
+      }
+      if (detail.mode === 'insert' && detail.anchorBefore) {
+        const anchor = String(detail.anchorBefore);
+        if (current.slice(Math.max(0, start - anchor.length), start) !== anchor) {
+          window.dispatchEvent(new CustomEvent('novly:livrinho-edit-result', { detail: { ok: false, error: 'O texto mudou desde a sugestao. Gere a continuacao novamente antes de inserir.' } }));
+          return;
+        }
+      }
+      const replacement = String(detail.text || '').trim();
+      if (!replacement) return;
+      const joiner = detail.mode === 'insert' && start > 0 && !/\s$/.test(current.slice(0, start)) && !/^[,.;:!?)]/.test(replacement) ? ' ' : '';
+      const inserted = joiner + replacement;
+      const next = detail.mode === 'replace'
+        ? current.slice(0, start) + replacement + current.slice(end)
+        : current.slice(0, start) + inserted + current.slice(start);
+      handleContentChange(next);
+      requestAnimationFrame(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        const pos = detail.mode === 'replace' ? start + replacement.length : Math.min(next.length, start + inserted.length);
+        textarea.focus(); textarea.setSelectionRange(pos, pos); autoResize();
+      });
+      window.dispatchEvent(new CustomEvent('novly:livrinho-edit-result', { detail: { ok: true } }));
+    }
+    window.addEventListener('novly:livrinho-edit', applyLivrinhoEdit);
+    return () => window.removeEventListener('novly:livrinho-edit', applyLivrinhoEdit);
+  }, [chapterId, content, title]);
+
+  useEffect(() => {
     function beforeUnload(e) {
       if (dirtyRef.current) {
         e.preventDefault();

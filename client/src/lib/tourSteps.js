@@ -133,7 +133,7 @@ export const WRITER_EDITOR_TOUR = [
   {
     target: '[data-tour="livrinho"]',
     title: 'Livrinho no editor',
-    text: 'Enquanto escreve, o Livrinho le o contexto do capitulo e pode continuar o texto, sugerir dialogo ou cutucar se o teclado ficar quieto por alguns minutos.',
+    text: 'O Livrinho conecta o capitulo a Story Bible: ajuda a escrever, analisa continuidade, consulta o canon e testa ideias sem alterar seu manuscrito sem confirmacao.',
     placement: 'top',
   },
   {
